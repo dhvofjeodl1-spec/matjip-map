@@ -1,0 +1,3 @@
+# Local env files (VITE_NAVER_MAP_CLIENT_ID lives here for local dev)
+.env
+.env.local
