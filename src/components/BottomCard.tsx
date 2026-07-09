@@ -147,7 +147,8 @@ export default function BottomCard({ restaurant, onClose, onDelete, onEdit }: Bo
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="absolute bottom-3 left-3 right-3 z-30 max-h-[74dvh] overflow-y-auto px-1 pb-1"
+        className="absolute left-3 right-3 z-30 max-h-[74dvh] overflow-y-auto px-1 pb-1"
+        style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
         data-testid="bottom-card"
       >
         <div className="flex flex-col overflow-hidden rounded-[24px] border border-orange-100 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.16)]">

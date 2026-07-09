@@ -54,19 +54,30 @@ function hasValidCoordinates(restaurant: Restaurant) {
 }
 
 function buildMarkerIconHtml(isSelected: boolean) {
-  const bg = isSelected ? '#f97316' : '#ffffff';
-  const fg = isSelected ? '#ffffff' : '#f97316';
+  const fillColor = isSelected ? '#C62828' : '#E53935';
+  const iconSize = isSelected ? { width: 30, height: 40 } : { width: 24, height: 32 };
+  const scale = isSelected ? 1.05 : 1;
+  const selectedAnimation = isSelected ? 'animation: selected-scale 180ms ease-out forwards;' : '';
 
   return `
-    <div style="width:34px;height:34px;border-radius:9999px;display:flex;align-items:center;justify-content:center;
-      background:${bg};border:2px solid #f97316;box-shadow:0 2px 6px rgba(0,0,0,0.25);cursor:pointer;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${fg}" stroke-width="2.5"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10Z"/>
-        <circle cx="12" cy="11" r="2.2" fill="${fg}" stroke="none"/>
-      </svg>
-    </div>
+    <svg width="${iconSize.width}" height="${iconSize.height}" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg" style="display:block;transform-origin:center bottom;transform:scale(${scale});transition:transform 180ms ease-out;${selectedAnimation}">
+      <style>
+        @keyframes selected-scale { from { transform: scale(0.9); } to { transform: scale(1.05); } }
+      </style>
+      <defs>
+        <filter id="shadow">
+          <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="rgba(0,0,0,0.18)" />
+        </filter>
+      </defs>
+      <path d="M12 0C7.6 0 4 3.6 4 8c0 6 6 13 8 17 2-4 8-11 8-17 0-4.4-3.6-8-8-8Z" fill="${fillColor}" stroke="#ffffff" stroke-width="2" filter="url(#shadow)"/>
+      <circle cx="12" cy="10" r="3.5" fill="#ffffff" />
+      <circle cx="12" cy="10" r="1.5" fill="${fillColor}" />
+    </svg>
   `;
+}
+
+function buildMarkerAnchor(isSelected: boolean) {
+  return new window.naver.maps.Point(isSelected ? 15 : 12, isSelected ? 40 : 32);
 }
 
 function buildClusterIconHtml(count: number) {
@@ -108,14 +119,22 @@ export default function MapView({
 
         const { naver } = window;
 
-        const map = new naver.maps.Map(mapElRef.current, {
+        const isMobileView = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+        const showZoomControl = !isMobileView;
+
+        const mapOptions: Record<string, any> = {
           center: new naver.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng),
           zoom: 13,
-          zoomControl: true,
-          zoomControlOptions: {
-            position: naver.maps.Position.RIGHT_CENTER,
-          },
-        });
+          zoomControl: showZoomControl,
+        };
+
+        if (showZoomControl) {
+          mapOptions.zoomControlOptions = {
+            position: naver.maps.Position.TOP_RIGHT,
+          };
+        }
+
+        const map = new naver.maps.Map(mapElRef.current, mapOptions);
 
         naver.maps.Event.addListener(map, 'click', () => {
           onMapClick();
@@ -153,7 +172,7 @@ export default function MapView({
         map: mapInstanceRef.current,
         icon: {
           content: buildMarkerIconHtml(isSelected),
-          anchor: new naver.maps.Point(17, 34),
+          anchor: buildMarkerAnchor(isSelected),
         },
         zIndex: isSelected ? 100 : 1,
       });
@@ -316,7 +335,8 @@ export default function MapView({
       <button
         type="button"
         onClick={handleCurrentLocation}
-        className="absolute bottom-28 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-orange-100 bg-white/95 shadow-[0_12px_30px_rgba(15,23,42,0.12)] transition-all hover:-translate-y-0.5"
+        className="absolute right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-orange-100 bg-white/95 shadow-[0_12px_30px_rgba(15,23,42,0.12)] transition-all hover:-translate-y-0.5"
+        style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
         aria-label="현재 위치로 이동"
       >
         <Navigation size={18} className="text-primary" />
