@@ -74,6 +74,8 @@ export default function Home() {
   }, [favoriteVersion]);
 
   const isAdmin = Boolean(currentUser?.email && ADMIN_EMAILS.includes(currentUser.email));
+  const displayName = currentUser?.email ? currentUser.email.split('@')[0] : 'User';
+  const compactDisplayName = displayName.length > 10 ? `${displayName.slice(0, 10)}...` : displayName;
 
   // 카테고리 + 검색어로 필터링
   const filteredRestaurants = useMemo(() => {
@@ -174,16 +176,48 @@ export default function Home() {
 
       <CategoryScroll selectedCategory={selectedCategory} onSelectCategory={handleCategorySelect} />
 
-      <button
-        type="button"
-        onClick={() => setShowOnlyFavorites((value) => !value)}
-        className={`absolute left-3 top-[132px] z-20 flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm transition-all ${
-          showOnlyFavorites ? 'border-red-200 bg-red-50 text-red-500 shadow-red-100' : 'border-gray-200 bg-white/95 text-gray-700 hover:border-orange-200 hover:bg-orange-50'
-        }`}
-      >
-        <Heart size={14} fill={showOnlyFavorites ? 'currentColor' : 'none'} />
-        즐겨찾기만 보기
-      </button>
+      <div className="absolute inset-x-3 top-[156px] z-20 flex flex-wrap items-center gap-2 overflow-x-auto px-1 sm:top-[132px]">
+        <button
+          type="button"
+          onClick={() => setShowOnlyFavorites((value) => !value)}
+          className={`inline-flex h-12 min-w-[148px] items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold shadow-sm transition-all ${
+            showOnlyFavorites ? 'border-red-200 bg-red-50 text-red-500 shadow-red-100' : 'border-gray-200 bg-white/95 text-gray-700 hover:border-orange-200 hover:bg-orange-50'
+          }`}
+        >
+          <Heart size={16} fill={showOnlyFavorites ? 'currentColor' : 'none'} />
+          즐겨찾기만 보기
+        </button>
+
+        {authLoading ? (
+          <div className="inline-flex h-12 min-w-[110px] items-center justify-center rounded-full border border-gray-200 bg-white/95 px-4 text-sm font-medium text-gray-500 shadow-sm">
+            로딩 중...
+          </div>
+        ) : currentUser ? (
+          <>
+            <div className="inline-flex h-12 min-w-[110px] max-w-[140px] items-center gap-2 overflow-hidden rounded-full border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 shadow-sm">
+              <UserCircle2 size={16} />
+              <span className="truncate">{compactDisplayName}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex h-12 min-w-[100px] items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+            >
+              <LogOut size={16} />
+              로그아웃
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={handleLogin}
+            className="inline-flex h-12 min-w-[100px] items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+          >
+            <LogIn size={16} />
+            로그인
+          </button>
+        )}
+      </div>
 
       {isLoading && (
         <div className="absolute left-1/2 top-[144px] z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-orange-100 bg-white/95 px-3.5 py-2 text-sm font-medium text-gray-600 shadow-[0_10px_30px_rgba(15,23,42,0.12)] backdrop-blur-sm">
@@ -191,28 +225,6 @@ export default function Home() {
           맛집을 불러오는 중...
         </div>
       )}
-
-      {/* auth area */}
-      <div className="absolute inset-x-3 top-3 z-30 flex items-center justify-end gap-2 sm:justify-end">
-        {currentUser ? (
-          <div className="inline-flex max-w-[160px] items-center gap-2 overflow-hidden rounded-full border border-gray-200 bg-white px-2.5 py-2 text-xs font-medium text-gray-700 shadow-sm sm:max-w-[220px]">
-            <UserCircle2 size={16} />
-            <span className="truncate">{currentUser.email?.split('@')[0] ?? 'User'}</span>
-          </div>
-        ) : authLoading ? (
-          <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-2 text-xs font-medium text-gray-500 shadow-sm">
-            Loading...
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={currentUser ? handleLogout : handleLogin}
-          className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-        >
-          {currentUser ? <LogOut size={14} /> : <LogIn size={14} />}
-          <span>{currentUser ? '로그아웃' : '로그인'}</span>
-        </button>
-      </div>
 
       <button
         onClick={() => setIsAddModalOpen(true)}

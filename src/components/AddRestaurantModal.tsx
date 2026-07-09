@@ -357,41 +357,41 @@ export default function AddRestaurantModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md w-[calc(100%-2rem)] rounded-2xl p-5 sm:p-6">
+      <DialogContent className="max-w-md w-[calc(100%-2rem)] rounded-2xl p-5 sm:p-6 max-h-[85dvh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">{mode === 'edit' ? '留쏆쭛 ?섏젙?섍린' : '留쏆쭛 ?깅줉?섍린'}</DialogTitle>
+          <DialogTitle className="text-lg font-bold">{mode === 'edit' ? '맛집 수정하기' : '맛집 등록하기'}</DialogTitle>
           <DialogDescription className="text-sm text-gray-500">
-            ?꾨줈紐?二쇱냼 ?먮뒗 吏踰?二쇱냼瑜??낅젰?섎㈃ ?먮룞?쇰줈 醫뚰몴瑜???ν빀?덈떎.
+            정확한 주소를 입력하시면 위치를 찾아 등록할 수 있습니다.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto max-h-[65dvh] pb-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="restaurant-name">?앸떦 ?대쫫</Label>
+            <Label htmlFor="restaurant-name">맛집 이름</Label>
             <Input
               id="restaurant-name"
               value={form.name}
               onChange={handleChange('name')}
-              placeholder="?? ?뺤젣?≫쉶 蹂몄젏"
+              placeholder="예: 갈비찜"
               disabled={fieldsDisabled}
               required
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="restaurant-address">二쇱냼</Label>
+            <Label htmlFor="restaurant-address">주소</Label>
             <Input
               id="restaurant-address"
               value={form.address}
               onChange={handleChange('address')}
-              placeholder="?? ?쒖슱 醫낅줈援?醫낅줈 200-1"
+              placeholder="예: 서울시 강남구 테헤란로 200-1"
               disabled={fieldsDisabled}
               required
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="restaurant-category">移댄뀒怨좊━</Label>
+            <Label htmlFor="restaurant-category">카테고리</Label>
             <Select
               value={form.category}
               onValueChange={(value) => setForm((prev) => ({ ...prev, category: value as Category }))}
@@ -412,7 +412,7 @@ export default function AddRestaurantModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-menu">???硫붾돱</Label>
+              <Label htmlFor="restaurant-menu">대표 메뉴</Label>
               <Input
                 id="restaurant-menu"
                 value={form.menuName}
@@ -424,14 +424,14 @@ export default function AddRestaurantModal({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-price">媛寃?(??</Label>
+              <Label htmlFor="restaurant-price">가격(원)</Label>
               <Input
                 id="restaurant-price"
                 type="number"
                 min={0}
                 value={form.price}
                 onChange={handleChange('price')}
-                placeholder="?? 12000"
+                placeholder="예: 12000"
                 disabled={fieldsDisabled}
                 required
               />
@@ -439,12 +439,12 @@ export default function AddRestaurantModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="restaurant-review">??以??뚭컻</Label>
+            <Label htmlFor="restaurant-review">한 줄 후기</Label>
             <Textarea
               id="restaurant-review"
               value={form.shortReview}
               onChange={handleChange('shortReview')}
-              placeholder="?? ?좎꽑???≫쉶? ?몄쭚??諛묐컲李ъ씠 ?몄긽?곸씠?먯슂."
+              placeholder="예: 국물이 진하고 깔끔했어요."
               disabled={fieldsDisabled}
               required
               rows={2}
@@ -453,7 +453,7 @@ export default function AddRestaurantModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-rating">?됱젏</Label>
+              <Label htmlFor="restaurant-rating">평점</Label>
               <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2">
                 {Array.from({ length: 5 }, (_, index) => {
                   const value = index + 1;
@@ -476,25 +476,25 @@ export default function AddRestaurantModal({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-image">Image upload</Label>
+              <Label htmlFor="restaurant-image">이미지 업로드</Label>
               <Input id="restaurant-image" type="file" accept="image/*" onChange={handleImageUpload} disabled={fieldsDisabled} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-phone">?꾪솕踰덊샇</Label>
+              <Label htmlFor="restaurant-phone">전화번호</Label>
               <Input
                 id="restaurant-phone"
                 value={form.phone}
                 onChange={handleChange('phone')}
-                placeholder="?? 02-1234-5678"
+                placeholder="예: 02-1234-5678"
                 disabled={fieldsDisabled}
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-blog-url">釉붾줈洹?由щ럭 URL</Label>
+              <Label htmlFor="restaurant-blog-url">블로그 리뷰 URL</Label>
               <Input
                 id="restaurant-blog-url"
                 type="url"
@@ -514,17 +514,17 @@ export default function AddRestaurantModal({
               onClick={() => handleClose(false)}
               disabled={submitting}
             >
-              痍⑥냼
+              취소
             </Button>
 
             <Button type="submit" className="flex-1" disabled={fieldsDisabled}>
               {submitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  {mode === 'edit' ? '?섏젙 以?..' : '?깅줉 以?..'}
+                  {mode === 'edit' ? '수정 중...' : '등록 중...'}
                 </>
               ) : (
-                mode === 'edit' ? '?섏젙?섍린' : '?깅줉?섍린'
+                mode === 'edit' ? '수정하기' : '등록하기'
               )}
             </Button>
           </DialogFooter>
