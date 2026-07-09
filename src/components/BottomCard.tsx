@@ -1,15 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Restaurant } from '@/lib/mock-data';
-import { deleteRestaurant } from '@/lib/restaurants';
+import { approveRestaurant, deleteRestaurant } from '@/lib/restaurants';
 import { Star, MapPin, Navigation, Clock, BookOpen, Phone, X, Trash2, Pencil, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 
 interface BottomCardProps {
   restaurant: Restaurant | null;
+  currentUser?: { id: string; email: string | null } | null;
   onClose?: () => void;
   onDelete?: (restaurantId: string) => void;
   onEdit?: (restaurant: Restaurant) => void;
+  onApprove?: () => void;
 }
 
 type RestaurantWithOptionalContact = Restaurant & {
@@ -64,7 +66,7 @@ function writeRestaurantReviews(restaurantId: string, reviews: LocalReview[]) {
   localStorage.setItem(`reviews-${restaurantId}`, JSON.stringify(reviews));
 }
 
-export default function BottomCard({ restaurant, onClose, onDelete, onEdit }: BottomCardProps) {
+export default function BottomCard({ restaurant, currentUser, onClose, onDelete, onEdit, onApprove }: BottomCardProps) {
   if (!restaurant) {
     return null;
   }
@@ -76,6 +78,10 @@ export default function BottomCard({ restaurant, onClose, onDelete, onEdit }: Bo
   const [reviews, setReviews] = useState<LocalReview[]>([]);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const contactInfo = restaurant as RestaurantWithOptionalContact;
+  const isOwner = Boolean(currentUser?.id && restaurant.ownerId === currentUser.id);
+  const isAdmin = Boolean(currentUser?.email === 'dhvofjeodl1@gmail.com');
+  const canEditDelete = isOwner || isAdmin;
+  const showApprovalControls = isAdmin && restaurant.isApproved === false;
   const primaryMenu = restaurant.menu?.[0];
   const additionalMenus = restaurant.menu?.slice(1) ?? [];
   const naverMapUrl = `https://map.naver.com/v5/search/${encodeURIComponent(restaurant.address)}`;
@@ -140,6 +146,18 @@ export default function BottomCard({ restaurant, onClose, onDelete, onEdit }: Bo
     onEdit?.(restaurant);
   };
 
+  const handleApprove = async () => {
+    try {
+      await approveRestaurant(restaurant.id);
+      toast({ title: '승인되었습니다', description: `${restaurant.name}이(가) 승인되었습니다.` });
+      onApprove?.();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      console.error('[matjip-map] 승인 실패', error);
+      toast({ variant: 'destructive', title: '승인에 실패했습니다', description: errorMessage });
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -184,8 +202,13 @@ export default function BottomCard({ restaurant, onClose, onDelete, onEdit }: Bo
             <div className="absolute bottom-3 left-3 right-3">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-lg font-bold text-white drop-shadow-sm">{restaurant.name}</h2>
-                <div className="rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-sm">
-                  {restaurant.isOpen ? '영업 중' : '영업 종료'}
+                <div className="space-x-2">
+                  <span className="inline-flex items-center rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-sm">
+                    {restaurant.isOpen ? '영업 중' : '영업 종료'}
+                  </span>
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm ${restaurant.isApproved ? 'bg-emerald-500 text-white' : 'bg-yellow-500 text-white'}`}>
+                    {restaurant.isApproved ? '승인됨' : '승인대기'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -274,23 +297,46 @@ export default function BottomCard({ restaurant, onClose, onDelete, onEdit }: Bo
               </div>
             ) : null}
 
-            <div className="flex gap-2 border-t border-gray-100 pt-3">
-              <button
-                type="button"
-                onClick={handleEdit}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-[14px] font-semibold text-gray-700 transition-colors active:bg-gray-50"
-              >
-                <Pencil size={16} />
-                수정
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-[14px] font-semibold text-red-600 transition-colors active:bg-red-100"
-              >
-                <Trash2 size={16} />
-                삭제
-              </button>
+            <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
+              {canEditDelete ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleEdit}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-[14px] font-semibold text-gray-700 transition-colors active:bg-gray-50"
+                  >
+                    <Pencil size={16} />
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-[14px] font-semibold text-red-600 transition-colors active:bg-red-100"
+                  >
+                    <Trash2 size={16} />
+                    삭제
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-center text-sm text-gray-500">
+                  이 식당의 수정/삭제 권한이 없습니다.
+                </div>
+              )}
+
+              {showApprovalControls && (
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  className="w-full rounded-2xl bg-emerald-600 px-3 py-2.5 text-[14px] font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+                >
+                  승인
+                </button>
+              )}
+              {restaurant.ownerEmail ? (
+                <div className="rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
+                  등록자: {restaurant.ownerEmail}
+                </div>
+              ) : null}
             </div>
 
             <div className="flex gap-2">

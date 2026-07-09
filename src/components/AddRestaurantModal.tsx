@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+﻿import React, { useEffect, useState } from 'react';
+import { supabase, isSupabaseConfigured, isAdminEmail } from '@/lib/supabase';
 import {
   Dialog,
   DialogContent,
@@ -30,34 +30,54 @@ interface AddRestaurantModalProps {
   onRegistered: (restaurantId?: string) => void;
   mode?: 'create' | 'edit';
   restaurant?: Restaurant | null;
+  currentUser?: { id: string; email: string | null } | null;
 }
 
-const CATEGORY_OPTIONS: Category[] = ['한식', '중식', '일식', '카페', '고기', '양식', '기타'];
-const geocodeAddress = (address: string): Promise<{ lat: number; lng: number }> => {
+const CATEGORY_OPTIONS: Category[] = ['?쒖떇', '以묒떇', '?쇱떇', '移댄럹', '怨좉린', '?묒떇', '湲고?'];
+interface GeocodeResult {
+  lat: number;
+  lng: number;
+  roadAddress: string;
+  jibunAddress: string;
+  address: string;
+}
+
+const normalizeAddress = (value: string): string => {
+  return value
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[^0-9a-zA-Z\uAC00-\uD7A3\s]/g, '')
+    .toLowerCase();
+};
+
+const geocodeAddress = (address: string): Promise<GeocodeResult> => {
   return new Promise((resolve, reject) => {
     const naver = (window as any).naver;
 
     if (!naver?.maps?.Service?.geocode) {
-      reject(new Error('네이버 Geocoding 모듈이 로드되지 않았습니다.'));
+      reject(new Error('?ㅼ씠踰?Geocoding 紐⑤뱢??濡쒕뱶?섏? ?딆븯?듬땲??'));
       return;
     }
 
     naver.maps.Service.geocode({ query: address }, (status: any, response: any) => {
       if (status !== naver.maps.Service.Status.OK) {
-        reject(new Error('주소를 좌표로 변환하지 못했습니다. 도로명 주소 또는 지번 주소를 입력해 주세요.'));
+        reject(new Error('二쇱냼瑜?醫뚰몴濡?蹂?섑븯吏 紐삵뻽?듬땲?? ?꾨줈紐?二쇱냼 ?먮뒗 吏踰?二쇱냼瑜??낅젰??二쇱꽭??'));
         return;
       }
 
       const item = response.v2?.addresses?.[0];
 
       if (!item) {
-        reject(new Error('주소 검색 결과가 없습니다. 도로명 주소 또는 지번 주소를 입력해 주세요.'));
+        reject(new Error('二쇱냼 寃??寃곌낵媛 ?놁뒿?덈떎. ?꾨줈紐?二쇱냼 ?먮뒗 吏踰?二쇱냼瑜??낅젰??二쇱꽭??'));
         return;
       }
 
       resolve({
         lat: Number(item.y),
         lng: Number(item.x),
+        roadAddress: item.roadAddress ?? '',
+        jibunAddress: item.jibunAddress ?? '',
+        address: item.address ?? item.roadAddress ?? item.jibunAddress ?? '',
       });
     });
   });
@@ -65,7 +85,7 @@ const geocodeAddress = (address: string): Promise<{ lat: number; lng: number }> 
 const EMPTY_FORM = {
   name: '',
   address: '',
-  category: '한식' as Category,
+  category: '?쒖떇' as Category,
   menuName: '',
   price: '',
   shortReview: '',
@@ -81,12 +101,13 @@ export default function AddRestaurantModal({
   onRegistered,
   mode = 'create',
   restaurant = null,
+  currentUser = null,
 }: AddRestaurantModalProps) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const { toast } = useToast();
-  const fieldsDisabled = submitting || uploadingImage || !isSupabaseConfigured;
+  const fieldsDisabled = submitting || uploadingImage || !isSupabaseConfigured || (!currentUser && mode === 'create');
 
   useEffect(() => {
     if (!open) return;
@@ -95,7 +116,7 @@ export default function AddRestaurantModal({
       setForm({
         name: restaurant.name || '',
         address: restaurant.address || '',
-        category: restaurant.category || '한식',
+        category: restaurant.category || '?쒖떇',
         menuName: restaurant.menu?.[0]?.name || '',
         price: restaurant.menu?.[0]?.price?.toString() || '',
         shortReview: restaurant.shortReview || '',
@@ -134,7 +155,7 @@ export default function AddRestaurantModal({
     if (!file) return;
 
     if (!isSupabaseConfigured || !supabase) {
-      toast({ variant: 'destructive', title: '업로드 불가', description: 'Supabase 환경이 설정되지 않았습니다.' });
+      toast({ variant: 'destructive', title: '?낅줈??遺덇?', description: 'Supabase ?섍꼍???ㅼ젙?섏? ?딆븯?듬땲??' });
       return;
     }
 
@@ -151,11 +172,11 @@ export default function AddRestaurantModal({
 
       const { data } = supabase.storage.from('restaurant-images').getPublicUrl(fileName);
       setForm((prev) => ({ ...prev, imageUrl: data.publicUrl }));
-      toast({ title: '이미지가 업로드되었습니다', description: '등록/수정 시 바로 반영됩니다.' });
+      toast({ title: '?대?吏媛 ?낅줈?쒕릺?덉뒿?덈떎', description: '?깅줉/?섏젙 ??諛붾줈 諛섏쁺?⑸땲??' });
     } catch (error) {
-      console.error('[matjip-map] 이미지 업로드 실패', error);
-      const message = error instanceof Error ? error.message : '콘솔 오류를 확인해주세요.';
-      toast({ variant: 'destructive', title: '이미지 업로드 실패', description: message });
+      console.error('[matjip-map] ?대?吏 ?낅줈???ㅽ뙣', error);
+      const message = error instanceof Error ? error.message : '肄섏넄 ?ㅻ쪟瑜??뺤씤?댁＜?몄슂.';
+      toast({ variant: 'destructive', title: '?대?吏 ?낅줈???ㅽ뙣', description: message });
     } finally {
       setUploadingImage(false);
     }
@@ -178,8 +199,17 @@ export default function AddRestaurantModal({
     if (!isSupabaseConfigured) {
       toast({
         variant: 'destructive',
-        title: '등록 기능을 이용할 수 없습니다',
-        description: 'Supabase 설정을 확인한 뒤 다시 시도해주세요.',
+        title: 'Supabase가 설정되지 않았습니다.',
+        description: 'Supabase가 설정되어 있지 않아 등록할 수 없습니다.',
+      });
+      return;
+    }
+
+    if (mode === 'create' && !currentUser) {
+      toast({
+        variant: 'destructive',
+        title: '로그인 필요',
+        description: '로그인 후 맛집을 등록할 수 있습니다.',
       });
       return;
     }
@@ -189,8 +219,8 @@ export default function AddRestaurantModal({
     if (!form.name.trim() || !form.address.trim() || !form.menuName.trim() || !form.shortReview.trim()) {
       toast({
         variant: 'destructive',
-        title: '입력값을 확인해주세요',
-        description: '식당 이름, 주소, 대표 메뉴, 한 줄 소개는 필수입니다.',
+        title: '?낅젰媛믪쓣 ?뺤씤?댁＜?몄슂',
+        description: '?앸떦 ?대쫫, 二쇱냼, ???硫붾돱, ??以??뚭컻???꾩닔?낅땲??',
       });
       return;
     }
@@ -198,8 +228,8 @@ export default function AddRestaurantModal({
     if (Number.isNaN(price) || price < 0) {
       toast({
         variant: 'destructive',
-        title: '가격을 확인해주세요',
-        description: '가격은 0 이상의 숫자로 입력해주세요.',
+        title: '媛寃⑹쓣 ?뺤씤?댁＜?몄슂',
+        description: '媛寃⑹? 0 ?댁긽???レ옄濡??낅젰?댁＜?몄슂.',
       });
       return;
     }
@@ -207,8 +237,8 @@ export default function AddRestaurantModal({
     if (form.phone.trim() && !/^\+?[0-9\s()-]{6,20}$/.test(form.phone.trim())) {
       toast({
         variant: 'destructive',
-        title: '전화번호를 확인해주세요',
-        description: '전화번호는 숫자, 공백, 하이픈, 괄호만 사용해 주세요.',
+        title: '?꾪솕踰덊샇瑜??뺤씤?댁＜?몄슂',
+        description: '?꾪솕踰덊샇???レ옄, 怨듬갚, ?섏씠?? 愿꾪샇留??ъ슜??二쇱꽭??',
       });
       return;
     }
@@ -216,8 +246,8 @@ export default function AddRestaurantModal({
     if (!isValidUrl(form.blogReviewUrl)) {
       toast({
         variant: 'destructive',
-        title: '블로그 리뷰 URL을 확인해주세요',
-        description: '올바른 URL 형식으로 입력해 주세요.',
+        title: '釉붾줈洹?由щ럭 URL???뺤씤?댁＜?몄슂',
+        description: '?щ컮瑜?URL ?뺤떇?쇰줈 ?낅젰??二쇱꽭??',
       });
       return;
     }
@@ -225,6 +255,38 @@ export default function AddRestaurantModal({
     setSubmitting(true);
     try {
       const coords = await geocodeAddress(form.address.trim());
+      const normalizedInput = normalizeAddress(form.address.trim());
+      const normalizedRoadAddress = normalizeAddress(coords.roadAddress);
+      const normalizedJibunAddress = normalizeAddress(coords.jibunAddress);
+      const normalizedGeocodedAddress = normalizeAddress(coords.address);
+
+      if (mode === 'create') {
+        const { data: existingRestaurants, error: existingRestaurantsError } = await supabase
+          .from('restaurants')
+          .select('address');
+
+        if (existingRestaurantsError) {
+          throw existingRestaurantsError;
+        }
+
+        const hasDuplicate = (existingRestaurants ?? []).some((row: { address?: string }) => {
+          const existingAddress = normalizeAddress(row.address ?? '');
+          return (
+            existingAddress === normalizedRoadAddress ||
+            existingAddress === normalizedJibunAddress ||
+            existingAddress === normalizedGeocodedAddress ||
+            existingAddress === normalizedInput
+          );
+        });
+
+        if (hasDuplicate) {
+          toast({
+            variant: 'destructive',
+            title: '?대? 媛숈? 二쇱냼濡??깅줉??留쏆쭛???덉뒿?덈떎.',
+          });
+          return;
+        }
+      }
 
       if (mode === 'edit' && restaurant?.id) {
         await updateRestaurant({
@@ -244,8 +306,8 @@ export default function AddRestaurantModal({
         });
 
         toast({
-          title: '맛집이 수정되었습니다',
-          description: `${form.name.trim()}이(가) 수정되었어요.`,
+          title: 'Restaurant updated successfully',
+          description: `${form.name.trim()} has been updated.`,
         });
 
         resetForm();
@@ -267,22 +329,25 @@ export default function AddRestaurantModal({
         blogReviewUrl: form.blogReviewUrl.trim(),
         imageUrl: form.imageUrl.trim(),
         rating: Number(form.rating),
+        ownerId: currentUser?.id,
+        ownerEmail: currentUser?.email ?? null,
+        isApproved: isAdminEmail(currentUser?.email),
       });
 
       toast({
-        title: '맛집이 등록되었습니다',
-        description: `${form.name.trim()}이(가) 등록되었어요.`,
+        title: 'Restaurant registered successfully',
+        description: `${form.name.trim()} has been registered.`,
       });
 
       resetForm();
       onOpenChange(false);
       onRegistered(restaurantId);
     } catch (error) {
-      console.error('[matjip-map] 식당 등록 실패', error);
-      const message = error instanceof Error ? error.message : '콘솔 오류를 확인해주세요.';
+      console.error('[matjip-map] ?앸떦 ?깅줉 ?ㅽ뙣', error);
+      const message = error instanceof Error ? error.message : '肄섏넄 ?ㅻ쪟瑜??뺤씤?댁＜?몄슂.';
       toast({
         variant: 'destructive',
-        title: '등록에 실패했습니다',
+        title: '?깅줉???ㅽ뙣?덉뒿?덈떎',
         description: message,
       });
     } finally {
@@ -294,39 +359,39 @@ export default function AddRestaurantModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md w-[calc(100%-2rem)] rounded-2xl p-5 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">{mode === 'edit' ? '맛집 수정하기' : '맛집 등록하기'}</DialogTitle>
+          <DialogTitle className="text-lg font-bold">{mode === 'edit' ? '留쏆쭛 ?섏젙?섍린' : '留쏆쭛 ?깅줉?섍린'}</DialogTitle>
           <DialogDescription className="text-sm text-gray-500">
-            도로명 주소 또는 지번 주소를 입력하면 자동으로 좌표를 저장합니다.
+            ?꾨줈紐?二쇱냼 ?먮뒗 吏踰?二쇱냼瑜??낅젰?섎㈃ ?먮룞?쇰줈 醫뚰몴瑜???ν빀?덈떎.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="restaurant-name">식당 이름</Label>
+            <Label htmlFor="restaurant-name">?앸떦 ?대쫫</Label>
             <Input
               id="restaurant-name"
               value={form.name}
               onChange={handleChange('name')}
-              placeholder="예: 형제육회 본점"
+              placeholder="?? ?뺤젣?≫쉶 蹂몄젏"
               disabled={fieldsDisabled}
               required
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="restaurant-address">주소</Label>
+            <Label htmlFor="restaurant-address">二쇱냼</Label>
             <Input
               id="restaurant-address"
               value={form.address}
               onChange={handleChange('address')}
-              placeholder="예: 서울 종로구 종로 200-1"
+              placeholder="?? ?쒖슱 醫낅줈援?醫낅줈 200-1"
               disabled={fieldsDisabled}
               required
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="restaurant-category">카테고리</Label>
+            <Label htmlFor="restaurant-category">移댄뀒怨좊━</Label>
             <Select
               value={form.category}
               onValueChange={(value) => setForm((prev) => ({ ...prev, category: value as Category }))}
@@ -347,26 +412,26 @@ export default function AddRestaurantModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-menu">대표 메뉴</Label>
+              <Label htmlFor="restaurant-menu">???硫붾돱</Label>
               <Input
                 id="restaurant-menu"
                 value={form.menuName}
                 onChange={handleChange('menuName')}
-                placeholder="예: 육회비빔밥"
+                placeholder="예: 아메리카노"
                 disabled={fieldsDisabled}
                 required
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-price">가격 (원)</Label>
+              <Label htmlFor="restaurant-price">媛寃?(??</Label>
               <Input
                 id="restaurant-price"
                 type="number"
                 min={0}
                 value={form.price}
                 onChange={handleChange('price')}
-                placeholder="예: 12000"
+                placeholder="?? 12000"
                 disabled={fieldsDisabled}
                 required
               />
@@ -374,12 +439,12 @@ export default function AddRestaurantModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="restaurant-review">한 줄 소개</Label>
+            <Label htmlFor="restaurant-review">??以??뚭컻</Label>
             <Textarea
               id="restaurant-review"
               value={form.shortReview}
               onChange={handleChange('shortReview')}
-              placeholder="예: 신선한 육회와 푸짐한 밑반찬이 인상적이에요."
+              placeholder="?? ?좎꽑???≫쉶? ?몄쭚??諛묐컲李ъ씠 ?몄긽?곸씠?먯슂."
               disabled={fieldsDisabled}
               required
               rows={2}
@@ -388,7 +453,7 @@ export default function AddRestaurantModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-rating">평점</Label>
+              <Label htmlFor="restaurant-rating">?됱젏</Label>
               <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2">
                 {Array.from({ length: 5 }, (_, index) => {
                   const value = index + 1;
@@ -400,7 +465,7 @@ export default function AddRestaurantModal({
                       onClick={() => handleRatingSelect(value)}
                       className="p-0.5"
                       disabled={fieldsDisabled}
-                      aria-label={`${value}점`}
+                      aria-label={`${value} stars`}
                     >
                       <Star size={16} className={isFilled ? 'fill-amber-400 text-amber-400' : 'text-gray-300'} />
                     </button>
@@ -411,25 +476,25 @@ export default function AddRestaurantModal({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-image">사진 업로드</Label>
+              <Label htmlFor="restaurant-image">Image upload</Label>
               <Input id="restaurant-image" type="file" accept="image/*" onChange={handleImageUpload} disabled={fieldsDisabled} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-phone">전화번호</Label>
+              <Label htmlFor="restaurant-phone">?꾪솕踰덊샇</Label>
               <Input
                 id="restaurant-phone"
                 value={form.phone}
                 onChange={handleChange('phone')}
-                placeholder="예: 02-1234-5678"
+                placeholder="?? 02-1234-5678"
                 disabled={fieldsDisabled}
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="restaurant-blog-url">블로그 리뷰 URL</Label>
+              <Label htmlFor="restaurant-blog-url">釉붾줈洹?由щ럭 URL</Label>
               <Input
                 id="restaurant-blog-url"
                 type="url"
@@ -449,17 +514,17 @@ export default function AddRestaurantModal({
               onClick={() => handleClose(false)}
               disabled={submitting}
             >
-              취소
+              痍⑥냼
             </Button>
 
             <Button type="submit" className="flex-1" disabled={fieldsDisabled}>
               {submitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  {mode === 'edit' ? '수정 중...' : '등록 중...'}
+                  {mode === 'edit' ? '?섏젙 以?..' : '?깅줉 以?..'}
                 </>
               ) : (
-                mode === 'edit' ? '수정하기' : '등록하기'
+                mode === 'edit' ? '?섏젙?섍린' : '?깅줉?섍린'
               )}
             </Button>
           </DialogFooter>

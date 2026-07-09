@@ -20,7 +20,7 @@ const CATEGORIES: { label: '전체' | Category; icon: React.ReactNode }[] = [
 
 export default function CategoryScroll({ selectedCategory, onSelectCategory }: CategoryScrollProps) {
   return (
-    <div className="absolute top-[78px] left-0 w-full z-20">
+    <div className="absolute top-[88px] left-0 w-full z-20 sm:top-[78px]">
       <div className="flex overflow-x-auto gap-2 px-3 py-2.5 no-scrollbar">
         {CATEGORIES.map(({ label, icon }) => {
           const isSelected = label === '전체' ? selectedCategory === null : selectedCategory === label;

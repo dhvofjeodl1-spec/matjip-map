@@ -4,12 +4,16 @@
 // 하나라도 비어 있으면 `isSupabaseConfigured`가 false가 되고, 앱은 목업 데이터로 동작합니다.
 // (URL과 anon key는 Supabase 프로젝트 > Project Settings > API에서 확인할 수 있는
 // 공개 클라이언트 값입니다. service_role 키 같은 비밀 값은 여기서 사용하지 않습니다.)
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
+export const ADMIN_EMAILS = ['dhvofjeodl1@gmail.com'];
+export const isAdminEmail = (email?: string | null): boolean => Boolean(email && ADMIN_EMAILS.includes(email));
+export type AuthUser = User | null;
 
 let supabase: SupabaseClient | null = null;
 
@@ -49,11 +53,17 @@ export { supabase };
  *
  * alter table restaurants add column if not exists phone text;
  * alter table restaurants add column if not exists blog_review_url text;
- * alter table restaurants add column if not exists is_approved boolean not null default true;
+ * alter table restaurants add column if not exists owner_id uuid;
+ * alter table restaurants add column if not exists owner_email text;
+ * alter table restaurants add column if not exists is_approved boolean not null default false;
  *
  * alter table restaurants enable row level security;
- * create policy "Public read" on restaurants for select using (true);
- * create policy "Public insert" on restaurants for insert with check (true);
- * create policy "Public update" on restaurants for update using (true) with check (true);
- * create policy "Public delete" on restaurants for delete using (true);
+ * create policy "Public read approved" on restaurants for select using (is_approved = true);
+ * create policy "Admin read all" on restaurants for select using (auth.role() = 'authenticated' AND auth.email() = 'dhvofjeodl1@gmail.com');
+ * create policy "Insert own restaurant" on restaurants for insert with check (owner_id = auth.uid());
+ * create policy "Update own restaurant" on restaurants for update using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+ * create policy "Delete own restaurant" on restaurants for delete using (owner_id = auth.uid());
+ *
+ * Note: Supabase RLS cannot securely verify an arbitrary admin email purely on client-side email values.
+ * For production, use custom claims or a dedicated admin role in Supabase auth rather than relying on client email checks.
  */

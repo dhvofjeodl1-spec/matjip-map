@@ -6,7 +6,8 @@ import BottomCard from '@/components/BottomCard';
 import AddRestaurantModal from '@/components/AddRestaurantModal';
 import { Category, Restaurant } from '@/lib/mock-data';
 import { fetchAllRestaurants } from '@/lib/restaurants';
-import { Plus, Loader2, Heart } from 'lucide-react';
+import { supabase, ADMIN_EMAILS } from '@/lib/supabase';
+import { Plus, Loader2, Heart, LogIn, LogOut, UserCircle2 } from 'lucide-react';
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -19,20 +20,40 @@ export default function Home() {
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [favoriteVersion, setFavoriteVersion] = useState(0);
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const loadRestaurants = useCallback(async () => {
     setIsLoading(true);
     try {
-      const restaurants = await fetchAllRestaurants();
+      const restaurants = await fetchAllRestaurants(currentUser ?? undefined);
       setAllRestaurants(restaurants);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     loadRestaurants();
   }, [loadRestaurants]);
+
+  useEffect(() => {
+    const getUser = async () => {
+      setAuthLoading(true);
+      const { data } = await supabase?.auth.getUser();
+      setCurrentUser(data.user ? { id: data.user.id, email: data.user.email } : null);
+      setAuthLoading(false);
+    };
+
+    getUser();
+
+    const { data: listener } = supabase?.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
+      setCurrentUser(user ? { id: user.id, email: user.email } : null);
+    }) ?? { data: null };
+
+    return () => listener?.subscription?.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const handleFavoritesUpdated = () => {
@@ -52,12 +73,14 @@ export default function Home() {
     }
   }, [favoriteVersion]);
 
+  const isAdmin = Boolean(currentUser?.email && ADMIN_EMAILS.includes(currentUser.email));
+
   // 카테고리 + 검색어로 필터링
   const filteredRestaurants = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
     return allRestaurants.filter((restaurant) => {
-      if (restaurant.isApproved === false) {
+      if (restaurant.isApproved === false && !isAdmin) {
         return false;
       }
 
@@ -114,6 +137,19 @@ export default function Home() {
     [loadRestaurants],
   );
 
+  const handleRestaurantApproved = useCallback(async () => {
+    await loadRestaurants();
+  }, [loadRestaurants]);
+
+  const handleLogin = async () => {
+    await supabase?.auth.signInWithOAuth({ provider: 'google' });
+  };
+
+  const handleLogout = async () => {
+    await supabase?.auth.signOut();
+    setCurrentUser(null);
+  };
+
   const handleRestaurantDeleted = useCallback((restaurantId: string) => {
     setAllRestaurants((prev) => prev.filter((restaurant) => restaurant.id !== restaurantId));
     setSelectedRestaurantId(null);
@@ -156,15 +192,36 @@ export default function Home() {
         </div>
       )}
 
-      {/* 맛집 등록 플로팅 버튼 */}
+      {/* auth area */}
+      <div className="absolute inset-x-3 top-3 z-30 flex items-center justify-end gap-2 sm:justify-end">
+        {currentUser ? (
+          <div className="inline-flex max-w-[160px] items-center gap-2 overflow-hidden rounded-full border border-gray-200 bg-white px-2.5 py-2 text-xs font-medium text-gray-700 shadow-sm sm:max-w-[220px]">
+            <UserCircle2 size={16} />
+            <span className="truncate">{currentUser.email?.split('@')[0] ?? 'User'}</span>
+          </div>
+        ) : authLoading ? (
+          <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-2 text-xs font-medium text-gray-500 shadow-sm">
+            Loading...
+          </div>
+        ) : null}
+        <button
+          type="button"
+          onClick={currentUser ? handleLogout : handleLogin}
+          className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+        >
+          {currentUser ? <LogOut size={14} /> : <LogIn size={14} />}
+          <span>{currentUser ? '로그아웃' : '로그인'}</span>
+        </button>
+      </div>
+
       <button
         onClick={() => setIsAddModalOpen(true)}
-        className="absolute right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_16px_40px_rgba(249,115,22,0.28)] transition-all active:scale-95"
+        className="absolute z-20 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_16px_40px_rgba(249,115,22,0.28)] transition-all active:scale-95"
         style={{
-          right: '16px',
+          right: '18px',
           bottom: isBottomCardOpen
             ? 'calc(120px + env(safe-area-inset-bottom, 0px))'
-            : 'calc(24px + env(safe-area-inset-bottom, 0px))',
+            : 'calc(28px + env(safe-area-inset-bottom, 0px))',
         }}
         aria-label="맛집 등록하기"
         data-testid="button-add-restaurant"
@@ -174,15 +231,18 @@ export default function Home() {
 
       <BottomCard
         restaurant={selectedRestaurant}
+        currentUser={currentUser}
         onClose={() => setSelectedRestaurantId(null)}
         onDelete={handleRestaurantDeleted}
         onEdit={handleEditRestaurant}
+        onApprove={handleRestaurantApproved}
       />
 
       <AddRestaurantModal
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
         onRegistered={handleRestaurantSaved}
+        currentUser={currentUser}
       />
 
       <AddRestaurantModal
@@ -191,6 +251,7 @@ export default function Home() {
         onRegistered={handleRestaurantSaved}
         mode="edit"
         restaurant={editingRestaurant}
+        currentUser={currentUser}
       />
     </div>
   );

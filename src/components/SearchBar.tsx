@@ -14,7 +14,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   };
 
   return (
-    <div className="absolute top-3 left-3 right-3 z-20">
+    <div className="absolute top-16 left-3 right-3 z-20 sm:top-3">
       <div className="rounded-[22px] border border-orange-100 bg-white/95 px-3 py-2.5 shadow-[0_12px_40px_rgba(15,23,42,0.12)] backdrop-blur-sm">
         <div className="flex items-center gap-2 rounded-full bg-orange-50/80 px-3 py-2.5 transition-colors focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-200">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">

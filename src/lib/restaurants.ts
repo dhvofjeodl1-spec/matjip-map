@@ -5,7 +5,7 @@
 // Home.tsx 등 화면 코드는 이 함수들만 호출하므로, 테이블 스키마가 바뀌어도
 // 나머지 UI 코드는 수정할 필요가 없습니다.
 
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase, isSupabaseConfigured, isAdminEmail } from './supabase';
 import { MOCK_RESTAURANTS, Restaurant, Category } from './mock-data';
 
 const TABLE_NAME = 'restaurants';
@@ -27,6 +27,9 @@ export interface NewRestaurantInput {
   blogReviewUrl?: string;
   imageUrl?: string;
   rating?: number;
+  ownerId?: string;
+  ownerEmail?: string;
+  isApproved?: boolean;
 }
 
 export interface RestaurantUpdateInput {
@@ -63,6 +66,8 @@ function rowToRestaurant(row: Record<string, any>): Restaurant {
     lng: typeof row.lng === 'number' ? row.lng : 0,
     phone: row.phone ? String(row.phone) : undefined,
     isApproved: row.is_approved === undefined ? true : Boolean(row.is_approved),
+    ownerId: row.owner_id ?? undefined,
+    ownerEmail: row.owner_email ?? undefined,
     blogReviewUrl: row.blog_review_url || undefined,
   };
 }
@@ -72,15 +77,21 @@ function rowToRestaurant(row: Record<string, any>): Restaurant {
  * - Supabase 미설정: 목업 데이터 반환
  * - Supabase 설정됨: "restaurants" 테이블 데이터 반환 (실패 시 목업 데이터로 대체)
  */
-export async function fetchAllRestaurants(): Promise<Restaurant[]> {
+export async function fetchAllRestaurants(user?: { id?: string | null; email?: string | null }): Promise<Restaurant[]> {
   if (!isSupabaseConfigured || !supabase) {
     return MOCK_RESTAURANTS;
   }
 
   try {
-    const { data, error } = await supabase.from(TABLE_NAME).select('*');
+    const query = supabase.from(TABLE_NAME).select('*');
+
+    if (!isAdminEmail(user?.email)) {
+      query.eq('is_approved', true);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
-    return (data ?? []).map(rowToRestaurant).filter((restaurant) => restaurant.isApproved !== false);
+    return (data ?? []).map(rowToRestaurant);
   } catch (error) {
     console.error('[matjip-map] Supabase에서 식당 목록을 불러오지 못했습니다. 목업 데이터로 대체합니다.', error);
     return MOCK_RESTAURANTS;
@@ -96,6 +107,10 @@ export async function addRestaurant(input: NewRestaurantInput): Promise<string> 
     throw new Error('Supabase가 설정되지 않아 등록할 수 없습니다.');
   }
 
+  if (!input.ownerId) {
+    throw new Error('로그인 후 맛집을 등록할 수 있습니다.');
+  }
+
   const insertPayload: Record<string, unknown> = {
     name: input.name,
     address: input.address,
@@ -109,7 +124,9 @@ export async function addRestaurant(input: NewRestaurantInput): Promise<string> 
     is_open: true,
     image_url: input.imageUrl?.trim() || DEFAULT_IMAGE_URL,
     blog_review_url: input.blogReviewUrl?.trim() || null,
-    is_approved: true,
+    is_approved: input.isApproved === true,
+    owner_id: input.ownerId,
+    owner_email: input.ownerEmail?.trim() || null,
     tags: [],
   };
 
@@ -179,6 +196,15 @@ export async function updateRestaurant(input: RestaurantUpdateInput): Promise<vo
   }
 
   if (result.error) throw result.error;
+}
+
+export async function approveRestaurant(restaurantId: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase가 설정되지 않아 승인할 수 없습니다.');
+  }
+
+  const { error } = await supabase.from(TABLE_NAME).update({ is_approved: true }).eq('id', restaurantId);
+  if (error) throw error;
 }
 
 export async function deleteRestaurant(restaurantId: string): Promise<void> {

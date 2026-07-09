@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Restaurant } from '@/lib/mock-data';
-import { Navigation } from 'lucide-react';
+import { Navigation, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 declare global {
@@ -102,6 +102,11 @@ export default function MapView({
   const markersRef = useRef<Record<string, any>>({});
   const clusterMarkersRef = useRef<Record<string, any>>({});
   const currentLocationMarkerRef = useRef<any>(null);
+  const watchIdRef = useRef<number | null>(null);
+  const isFollowingRef = useRef(false);
+  const isProgrammaticRef = useRef(false);
+  const shouldZoomOnNextUpdateRef = useRef(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
@@ -138,9 +143,18 @@ export default function MapView({
 
         const map = new naver.maps.Map(mapElRef.current, mapOptions);
 
+        const handleManualMapInteraction = () => {
+          if (!isProgrammaticRef.current && isFollowingRef.current) {
+            isFollowingRef.current = false;
+            setIsFollowing(false);
+          }
+        };
+
         naver.maps.Event.addListener(map, 'click', () => {
           onMapClick();
         });
+        naver.maps.Event.addListener(map, 'dragstart', handleManualMapInteraction);
+        naver.maps.Event.addListener(map, 'zoom_changed', handleManualMapInteraction);
 
         mapInstanceRef.current = map;
         setMapReady(true);
@@ -151,6 +165,10 @@ export default function MapView({
 
     return () => {
       cancelled = true;
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
     };
   }, []);
 
@@ -290,42 +308,79 @@ export default function MapView({
 
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setLocationStatus('브라우저에서 위치 정보를 지원하지 않습니다.');
+      toast({ variant: 'destructive', title: '위치 정보 미지원', description: '브라우저에서 위치 정보를 지원하지 않습니다.' });
       return;
     }
 
     setLocationStatus('현재 위치를 찾는 중...');
-    navigator.geolocation.getCurrentPosition(
+    setIsFollowing(true);
+    isFollowingRef.current = true;
+    shouldZoomOnNextUpdateRef.current = true;
+
+    if (watchIdRef.current !== null) {
+      if (currentLocationMarkerRef.current && mapInstanceRef.current) {
+        const currentPosition = currentLocationMarkerRef.current.getPosition();
+        if (currentPosition) {
+          isProgrammaticRef.current = true;
+          mapInstanceRef.current.panTo(currentPosition);
+          mapInstanceRef.current.setZoom(16);
+          setTimeout(() => {
+            isProgrammaticRef.current = false;
+          }, 0);
+        }
+      }
+      return;
+    }
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         const { naver } = window;
         if (!mapInstanceRef.current || !naver?.maps) return;
 
         const currentLocation = new naver.maps.LatLng(latitude, longitude);
-        mapInstanceRef.current.panTo(currentLocation);
-        mapInstanceRef.current.setZoom(15);
 
         if (currentLocationMarkerRef.current) {
-          currentLocationMarkerRef.current.setMap(null);
+          currentLocationMarkerRef.current.setPosition(currentLocation);
+        } else {
+          currentLocationMarkerRef.current = new naver.maps.Marker({
+            position: currentLocation,
+            map: mapInstanceRef.current,
+            icon: {
+              content: '<div style="width:14px;height:14px;border-radius:9999px;background:#2563eb;border:3px solid white;box-shadow:0 0 0 8px rgba(37,99,235,0.18);"></div>',
+              anchor: new naver.maps.Point(7, 7),
+            },
+            zIndex: 210,
+          });
         }
 
-        currentLocationMarkerRef.current = new naver.maps.Marker({
-          position: currentLocation,
-          map: mapInstanceRef.current,
-          icon: {
-            content: '<div style="width:14px;height:14px;border-radius:9999px;background:#2563eb;border:3px solid white;box-shadow:0 0 0 4px rgba(37,99,235,0.2);"></div>',
-            anchor: new naver.maps.Point(7, 7),
-          },
-        });
+        if (isFollowingRef.current) {
+          isProgrammaticRef.current = true;
+          mapInstanceRef.current.panTo(currentLocation);
+          if (shouldZoomOnNextUpdateRef.current) {
+            mapInstanceRef.current.setZoom(16);
+            shouldZoomOnNextUpdateRef.current = false;
+          }
+          setTimeout(() => {
+            isProgrammaticRef.current = false;
+          }, 0);
+        }
 
         setLocationStatus('현재 위치로 이동했습니다.');
       },
       (error) => {
         const message = error.code === error.PERMISSION_DENIED ? '위치 권한이 거부되었습니다.' : '현재 위치를 가져오지 못했습니다.';
-        setLocationStatus(message);
-        if (error.code === error.PERMISSION_DENIED) {
-          toast({ title: '위치 권한 필요', description: '브라우저 설정에서 위치 권한을 허용해 주세요.' });
+        toast({ variant: 'destructive', title: '위치 오류', description: message });
+        setLocationStatus(null);
+        if (watchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+          watchIdRef.current = null;
         }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
       },
     );
   };
@@ -337,20 +392,31 @@ export default function MapView({
       <button
         type="button"
         onClick={handleCurrentLocation}
-        className="absolute right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-orange-100 bg-white/95 shadow-[0_12px_30px_rgba(15,23,42,0.12)] transition-all hover:-translate-y-0.5"
+        className={`absolute z-20 flex h-12 w-12 items-center justify-center rounded-full border transition-all duration-200 shadow-[0_12px_30px_rgba(15,23,42,0.12)] ${
+          isFollowing
+            ? 'bg-primary border-primary text-white'
+            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+        }`}
         style={{
-          right: '16px',
+          right: '18px',
           bottom: isBottomCardOpen
-            ? 'calc(188px + env(safe-area-inset-bottom, 0px))'
-            : 'calc(92px + env(safe-area-inset-bottom, 0px))',
+            ? 'calc(196px + env(safe-area-inset-bottom, 0px))'
+            : 'calc(104px + env(safe-area-inset-bottom, 0px))',
         }}
         aria-label="현재 위치로 이동"
       >
-        <Navigation size={18} className="text-primary" />
+        {isFollowing ? <Navigation size={18} /> : <Target size={18} />}
       </button>
 
       {locationStatus && (
-        <div className="absolute left-1/2 top-24 z-20 -translate-x-1/2 rounded-full border border-orange-100 bg-white/95 px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-[0_10px_30px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+        <div
+          className="absolute left-1/2 z-20 -translate-x-1/2 rounded-full border border-orange-100 bg-white/95 px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-[0_10px_30px_rgba(15,23,42,0.12)] backdrop-blur-sm"
+          style={{
+            bottom: isBottomCardOpen
+              ? 'calc(260px + env(safe-area-inset-bottom, 0px))'
+              : 'calc(160px + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
           {locationStatus}
         </div>
       )}
