@@ -12,7 +12,11 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const ADMIN_EMAILS = ['dhvofjeodl1@gmail.com'];
-export const isAdminEmail = (email?: string | null): boolean => Boolean(email && ADMIN_EMAILS.includes(email));
+const ADMIN_EMAIL_SET = new Set(ADMIN_EMAILS.map((adminEmail) => adminEmail.trim().toLowerCase()));
+export const isAdminEmail = (email?: string | null): boolean => {
+  if (!email) return false;
+  return ADMIN_EMAIL_SET.has(email.trim().toLowerCase());
+};
 export type AuthUser = User | null;
 
 let supabase: SupabaseClient | null = null;

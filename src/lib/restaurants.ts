@@ -68,6 +68,7 @@ function rowToRestaurant(row: Record<string, any>): Restaurant {
     isApproved: row.is_approved === undefined ? true : Boolean(row.is_approved),
     ownerId: row.owner_id ?? undefined,
     ownerEmail: row.owner_email ?? undefined,
+    createdAt: row.created_at ? String(row.created_at) : undefined,
     blogReviewUrl: row.blog_review_url || undefined,
   };
 }
@@ -204,6 +205,15 @@ export async function approveRestaurant(restaurantId: string): Promise<void> {
   }
 
   const { error } = await supabase.from(TABLE_NAME).update({ is_approved: true }).eq('id', restaurantId);
+  if (error) throw error;
+}
+
+export async function setRestaurantApprovalStatus(restaurantId: string, isApproved: boolean): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase가 설정되지 않아 승인 상태를 변경할 수 없습니다.');
+  }
+
+  const { error } = await supabase.from(TABLE_NAME).update({ is_approved: isApproved }).eq('id', restaurantId);
   if (error) throw error;
 }
 

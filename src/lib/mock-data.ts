@@ -41,6 +41,8 @@ export interface Restaurant {
   isApproved?: boolean;
   ownerId?: string;
   ownerEmail?: string;
+  /** 등록일 */
+  createdAt?: string;
   /** TODO: 블로그 리뷰 기능 연동 시 사용 (현재는 값이 없으면 카드에 노출되지 않음) */
   blogReviewUrl?: string;
 }
