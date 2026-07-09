@@ -89,6 +89,8 @@ export default function Home() {
     return allRestaurants.find((r) => r.id === selectedRestaurantId) || null;
   }, [allRestaurants, selectedRestaurantId]);
 
+  const isBottomCardOpen = Boolean(selectedRestaurant);
+
   const handleMapClick = () => {
     setSelectedRestaurantId(null);
   };
@@ -129,6 +131,7 @@ export default function Home() {
         selectedRestaurantId={selectedRestaurantId}
         onSelectRestaurant={setSelectedRestaurantId}
         onMapClick={handleMapClick}
+        isBottomCardOpen={isBottomCardOpen}
       />
 
       <SearchBar onSearch={setSearchQuery} />
@@ -157,7 +160,12 @@ export default function Home() {
       <button
         onClick={() => setIsAddModalOpen(true)}
         className="absolute right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_16px_40px_rgba(249,115,22,0.28)] transition-all active:scale-95"
-        style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
+        style={{
+          right: '16px',
+          bottom: isBottomCardOpen
+            ? 'calc(120px + env(safe-area-inset-bottom, 0px))'
+            : 'calc(24px + env(safe-area-inset-bottom, 0px))',
+        }}
         aria-label="맛집 등록하기"
         data-testid="button-add-restaurant"
       >

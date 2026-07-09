@@ -14,6 +14,7 @@ interface MapViewProps {
   selectedRestaurantId: string | null;
   onSelectRestaurant: (id: string) => void;
   onMapClick: () => void;
+  isBottomCardOpen?: boolean;
 }
 
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
@@ -94,6 +95,7 @@ export default function MapView({
   selectedRestaurantId,
   onSelectRestaurant,
   onMapClick,
+  isBottomCardOpen = false,
 }: MapViewProps) {
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -336,7 +338,12 @@ export default function MapView({
         type="button"
         onClick={handleCurrentLocation}
         className="absolute right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-orange-100 bg-white/95 shadow-[0_12px_30px_rgba(15,23,42,0.12)] transition-all hover:-translate-y-0.5"
-        style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
+        style={{
+          right: '16px',
+          bottom: isBottomCardOpen
+            ? 'calc(188px + env(safe-area-inset-bottom, 0px))'
+            : 'calc(92px + env(safe-area-inset-bottom, 0px))',
+        }}
         aria-label="현재 위치로 이동"
       >
         <Navigation size={18} className="text-primary" />
