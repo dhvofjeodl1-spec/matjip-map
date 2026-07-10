@@ -54,8 +54,28 @@ function hasValidCoordinates(restaurant: Restaurant) {
   );
 }
 
-function buildMarkerIconHtml(isSelected: boolean) {
-  const fillColor = isSelected ? '#C62828' : '#E53935';
+function darkenHexColor(color: string, factor: number) {
+  const normalized = color.replace('#', '');
+  const value = normalized.length === 3 ? normalized.split('').map((char) => `${char}${char}`).join('') : normalized;
+  const num = Number.parseInt(value, 16);
+  const r = Math.max(0, Math.floor(((num >> 16) & 255) * factor));
+  const g = Math.max(0, Math.floor(((num >> 8) & 255) * factor));
+  const b = Math.max(0, Math.floor((num & 255) * factor));
+  return `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function buildMarkerIconHtml(category: Restaurant['category'], isSelected: boolean) {
+  const categoryColors: Record<Restaurant['category'], string> = {
+    한식: '#E53935',
+    중식: '#FB8C00',
+    일식: '#1E88E5',
+    양식: '#8E24AA',
+    카페: '#6D4C41',
+    고기: '#C62828',
+    기타: '#757575',
+  };
+  const baseColor = categoryColors[category] ?? '#E53935';
+  const fillColor = isSelected ? darkenHexColor(baseColor, 0.82) : baseColor;
   const iconSize = isSelected ? { width: 30, height: 40 } : { width: 24, height: 32 };
   const scale = isSelected ? 1.05 : 1;
   const selectedAnimation = isSelected ? 'animation: selected-scale 180ms ease-out forwards;' : '';
@@ -191,7 +211,7 @@ export default function MapView({
         position: new naver.maps.LatLng(restaurant.lat, restaurant.lng),
         map: mapInstanceRef.current,
         icon: {
-          content: buildMarkerIconHtml(isSelected),
+          content: buildMarkerIconHtml(restaurant.category, isSelected),
           anchor: buildMarkerAnchor(isSelected),
         },
         zIndex: isSelected ? 100 : 1,
@@ -392,20 +412,20 @@ export default function MapView({
       <button
         type="button"
         onClick={handleCurrentLocation}
-        className={`absolute z-20 flex h-12 w-12 items-center justify-center rounded-full border transition-all duration-200 shadow-[0_12px_30px_rgba(15,23,42,0.12)] ${
+        className={`absolute z-20 flex h-11 w-11 items-center justify-center rounded-full border transition-all duration-200 shadow-[0_10px_24px_rgba(15,23,42,0.12)] ${
           isFollowing
-            ? 'bg-primary border-primary text-white'
-            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+            ? 'border-primary bg-primary text-white'
+            : 'border-gray-200 bg-white/95 text-gray-500 hover:bg-gray-50'
         }`}
         style={{
-          right: '18px',
+          right: '14px',
           bottom: isBottomCardOpen
-            ? 'calc(196px + env(safe-area-inset-bottom, 0px))'
-            : 'calc(104px + env(safe-area-inset-bottom, 0px))',
+            ? 'calc(116px + env(safe-area-inset-bottom, 0px))'
+            : 'calc(82px + env(safe-area-inset-bottom, 0px))',
         }}
         aria-label="현재 위치로 이동"
       >
-        {isFollowing ? <Navigation size={18} /> : <Target size={18} />}
+        {isFollowing ? <Navigation size={16} /> : <Target size={16} />}
       </button>
 
       {locationStatus && (

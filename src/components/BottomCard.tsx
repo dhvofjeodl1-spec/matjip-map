@@ -97,7 +97,6 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
     setReviews(readRestaurantReviews(restaurant.id));
   }, [restaurant.id]);
 
-  const ratingStars = useMemo(() => Array.from({ length: 5 }, (_, index) => index < Math.round(restaurant.rating)), [restaurant.rating]);
   const hasImage = Boolean(restaurant.imageUrl && restaurant.imageUrl.trim() && restaurant.imageUrl !== DEFAULT_IMAGE_URL);
 
   const handleFavoriteToggle = () => {
@@ -165,19 +164,14 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="absolute left-3 right-3 z-30 max-h-[74dvh] overflow-y-auto px-1 pb-1"
-        style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+        className="absolute left-2 right-2 z-30 max-h-[78dvh] overflow-y-auto px-1 pb-2 sm:left-3 sm:right-3"
+        style={{ bottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
         data-testid="bottom-card"
       >
-        <div className="flex flex-col overflow-hidden rounded-[24px] border border-orange-100 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
-          <div className="relative h-40 w-full shrink-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-300">
+        <div className="flex flex-col overflow-hidden rounded-[20px] border border-orange-100 bg-white shadow-[0_18px_54px_rgba(15,23,42,0.16)]">
+          <div className="relative h-36 w-full shrink-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-300 sm:h-40">
             {hasImage ? (
-              <button
-                type="button"
-                onClick={() => setIsImagePreviewOpen(true)}
-                className="block h-full w-full text-left"
-                aria-label="이미지 크게 보기"
-              >
+              <button type="button" onClick={() => setIsImagePreviewOpen(true)} className="block h-full w-full text-left" aria-label="이미지 크게 보기">
                 <img src={restaurant.imageUrl} alt={restaurant.name} className="h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
               </button>
@@ -185,28 +179,28 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
               <div className="absolute inset-0 bg-gradient-to-t from-gray-700/40 via-gray-400/20 to-transparent" />
             )}
             {restaurant.category ? (
-              <div className="absolute top-2 left-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-sm">
+              <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-sm">
                 {restaurant.category}
               </div>
             ) : null}
-            <div className="absolute top-2 right-2 flex items-center justify-center rounded-full bg-white/90 p-1.5 shadow-sm">
+            <div className="absolute right-2 top-2 flex items-center justify-center rounded-full bg-white/90 p-1.5 shadow-sm">
               <button
                 type="button"
                 onClick={onClose}
                 className="rounded-full p-1 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
                 aria-label="닫기"
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
             <div className="absolute bottom-3 left-3 right-3">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg font-bold text-white drop-shadow-sm">{restaurant.name}</h2>
-                <div className="space-x-2">
-                  <span className="inline-flex items-center rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-sm">
+                <h2 className="text-base font-bold text-white drop-shadow-sm sm:text-lg">{restaurant.name}</h2>
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <span className="inline-flex items-center rounded-full bg-white/95 px-2 py-1 text-[10px] font-semibold text-gray-700 shadow-sm">
                     {restaurant.isOpen ? '영업 중' : '영업 종료'}
                   </span>
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm ${restaurant.isApproved ? 'bg-emerald-500 text-white' : 'bg-yellow-500 text-white'}`}>
+                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold shadow-sm ${restaurant.isApproved ? 'bg-emerald-500 text-white' : 'bg-yellow-500 text-white'}`}>
                     {restaurant.isApproved ? '승인됨' : '승인대기'}
                   </span>
                 </div>
@@ -214,11 +208,11 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 p-4">
-            <div className="flex items-center justify-between gap-2 text-[14px]">
+          <div className="flex flex-col gap-2.5 p-3 sm:gap-3 sm:p-4">
+            <div className="flex items-center justify-between gap-2 text-[13px]">
               <div className="flex items-center gap-2">
                 <div className="flex items-center font-bold text-primary">
-                  <Star size={14} className="mr-0.5 fill-current" />
+                  <Star size={13} className="mr-0.5 fill-current" />
                   {restaurant.rating.toFixed(1)}
                 </div>
                 <span className="text-gray-400">·</span>
@@ -227,10 +221,10 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
               <button
                 type="button"
                 onClick={handleFavoriteToggle}
-                className={`rounded-full p-2.5 transition-all ${isFavorite ? 'bg-red-50 text-red-500 shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-orange-50 hover:text-orange-500'}`}
+                className={`rounded-full p-2 transition-all ${isFavorite ? 'bg-red-50 text-red-500 shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-orange-50 hover:text-orange-500'}`}
                 aria-label="즐겨찾기"
               >
-                <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} />
+                <Heart size={15} fill={isFavorite ? 'currentColor' : 'none'} />
               </button>
             </div>
 
@@ -238,130 +232,124 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
               {Array.from({ length: 5 }, (_, index) => {
                 const value = index + 1;
                 const isFilled = value <= Math.round(restaurant.rating);
-                return <Star key={`${restaurant.id}-${index}`} size={16} className={isFilled ? 'fill-current' : 'text-gray-300'} />;
+                return <Star key={`${restaurant.id}-${index}`} size={15} className={isFilled ? 'fill-current' : 'text-gray-300'} />;
               })}
-              <span className="ml-1 text-xs font-medium text-gray-500">{Math.round(restaurant.rating)}/5</span>
+              <span className="ml-1 text-[11px] font-medium text-gray-500">{Math.round(restaurant.rating)}/5</span>
             </div>
 
             {primaryMenu ? (
-              <div className="rounded-2xl border border-orange-100 bg-orange-50/80 p-3">
-                <div className="mb-2 flex items-center justify-between text-sm">
+              <div className="rounded-2xl border border-orange-100 bg-orange-50/80 p-2.5">
+                <div className="mb-1.5 flex items-center justify-between text-sm">
                   <span className="font-semibold text-gray-700">대표 메뉴</span>
-                  <span className="text-xs font-semibold text-primary">{formatPrice(primaryMenu.price)}</span>
+                  <span className="text-[11px] font-semibold text-primary">{formatPrice(primaryMenu.price)}</span>
                 </div>
                 <div className="text-sm text-gray-800">
                   <div className="font-semibold text-gray-900">{primaryMenu.name}</div>
                   {additionalMenus.length > 0 && (
-                    <div className="mt-1 text-xs text-gray-500">
-                      추가 메뉴: {additionalMenus.map((item) => item.name).join(', ')}
-                    </div>
+                    <div className="mt-1 text-[11px] text-gray-500">추가 메뉴: {additionalMenus.map((item) => item.name).join(', ')}</div>
                   )}
                 </div>
               </div>
             ) : null}
 
             {restaurant.shortReview ? (
-              <p className="rounded-2xl border border-gray-100 bg-white px-3 py-2.5 text-sm leading-relaxed text-gray-700 shadow-sm">
+              <p className="rounded-2xl border border-gray-100 bg-white px-2.5 py-2 text-sm leading-relaxed text-gray-700 shadow-sm">
                 “{restaurant.shortReview}”
               </p>
             ) : null}
 
             {restaurant.address ? (
-              <div className="flex items-start gap-2 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-sm text-gray-600">
-                <MapPin size={16} className="mt-0.5 shrink-0 text-gray-400" />
-                <span>{restaurant.address}</span>
+              <div className="flex items-start gap-2 rounded-2xl border border-gray-100 bg-gray-50 px-2.5 py-2 text-sm text-gray-600">
+                <MapPin size={15} className="mt-0.5 shrink-0 text-gray-400" />
+                <span className="break-words">{restaurant.address}</span>
               </div>
             ) : null}
 
             {contactInfo.phone && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Phone size={16} className="shrink-0 text-gray-400" />
+                <Phone size={15} className="shrink-0 text-gray-400" />
                 <span>{contactInfo.phone}</span>
               </div>
             )}
 
             {contactInfo.businessHours && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock size={16} className="shrink-0 text-gray-400" />
+                <Clock size={15} className="shrink-0 text-gray-400" />
                 <span>{contactInfo.businessHours}</span>
               </div>
             )}
 
             {restaurant.tags?.length ? (
-              <div className="flex flex-wrap gap-1.5 pt-1">
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {restaurant.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-orange-50 px-2.5 py-1 text-[12px] font-medium text-primary">
+                  <span key={tag} className="rounded-full bg-orange-50 px-2 py-1 text-[11px] font-medium text-primary">
                     #{tag}
                   </span>
                 ))}
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
+            <div className="flex flex-col gap-2 border-t border-gray-100 pt-2.5">
               {canEditDelete ? (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={handleEdit}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-[14px] font-semibold text-gray-700 transition-colors active:bg-gray-50"
+                    className="flex min-w-[92px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-[12px] font-semibold text-gray-700 transition-colors active:bg-gray-50"
                   >
-                    <Pencil size={16} />
+                    <Pencil size={13} />
                     수정
                   </button>
                   <button
                     type="button"
                     onClick={handleDelete}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-[14px] font-semibold text-red-600 transition-colors active:bg-red-100"
+                    className="flex min-w-[92px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-2.5 py-2 text-[12px] font-semibold text-red-600 transition-colors active:bg-red-100"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={13} />
                     삭제
                   </button>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-center text-sm text-gray-500">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-2.5 text-center text-sm text-gray-500">
                   이 식당의 수정/삭제 권한이 없습니다.
                 </div>
               )}
 
               {showApprovalControls && (
-                <button
-                  type="button"
-                  onClick={handleApprove}
-                  className="w-full rounded-2xl bg-emerald-600 px-3 py-2.5 text-[14px] font-semibold text-white shadow-sm transition hover:bg-emerald-500"
-                >
+                <button type="button" onClick={handleApprove} className="h-9 rounded-xl bg-emerald-600 px-3 text-[12px] font-semibold text-white shadow-sm transition hover:bg-emerald-500">
                   승인
                 </button>
               )}
               {restaurant.ownerEmail ? (
-                <div className="rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
+                <div className="rounded-2xl border border-gray-200 bg-white px-3 py-2 text-[11px] text-gray-500">
                   등록자: {restaurant.ownerEmail}
                 </div>
               ) : null}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <a
                 href={naverMapUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-blue-50 px-3 py-2.5 text-[14px] font-semibold text-blue-600 transition-colors active:bg-blue-100"
+                className="flex min-w-[110px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-50 px-2.5 py-2 text-[12px] font-semibold text-blue-600 transition-colors active:bg-blue-100"
               >
-                <Navigation size={16} />
-                네이버 지도 열기
+                <Navigation size={13} />
+                네이버 지도
               </a>
 
               <a
                 href={blogReviewUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 py-2.5 text-[14px] font-semibold text-white shadow-sm shadow-primary/20 transition-colors active:bg-orange-600"
+                className="flex min-w-[110px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-2.5 py-2 text-[12px] font-semibold text-white shadow-sm shadow-primary/20 transition-colors active:bg-orange-600"
               >
-                <BookOpen size={16} />
-                블로그 리뷰 보기
+                <BookOpen size={13} />
+                블로그 리뷰
               </a>
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-2.5">
               <div className="mb-2 text-sm font-semibold text-gray-700">리뷰 남기기</div>
               <textarea
                 value={reviewText}
@@ -375,24 +363,14 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
                   const value = index + 1;
                   const isSelected = value <= reviewRating;
                   return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setReviewRating(value)}
-                      className="rounded-full p-1"
-                      aria-label={`${value}점`}
-                    >
-                      <Star size={16} className={isSelected ? 'fill-current text-amber-500' : 'text-gray-300'} />
+                    <button key={value} type="button" onClick={() => setReviewRating(value)} className="rounded-full p-1" aria-label={`${value}점`}>
+                      <Star size={15} className={isSelected ? 'fill-current text-amber-500' : 'text-gray-300'} />
                     </button>
                   );
                 })}
-                <span className="ml-1 text-xs font-medium text-gray-500">{reviewRating}/5</span>
+                <span className="ml-1 text-[11px] font-medium text-gray-500">{reviewRating}/5</span>
               </div>
-              <button
-                type="button"
-                onClick={handleReviewSubmit}
-                className="mt-2 rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm"
-              >
+              <button type="button" onClick={handleReviewSubmit} className="mt-2 h-9 rounded-xl bg-primary px-3 text-sm font-semibold text-white shadow-sm">
                 등록
               </button>
               {reviews.length > 0 && (
@@ -420,19 +398,9 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
 
       <AnimatePresence>
         {isImagePreviewOpen && hasImage ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3">
             <div className="relative w-full max-w-3xl rounded-2xl bg-white p-2 shadow-2xl">
-              <button
-                type="button"
-                onClick={() => setIsImagePreviewOpen(false)}
-                className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white"
-                aria-label="이미지 닫기"
-              >
+              <button type="button" onClick={() => setIsImagePreviewOpen(false)} className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white" aria-label="이미지 닫기">
                 <X size={18} />
               </button>
               <img src={restaurant.imageUrl} alt={restaurant.name} className="max-h-[80dvh] w-full rounded-xl object-contain" />

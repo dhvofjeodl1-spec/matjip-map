@@ -357,7 +357,7 @@ export default function AddRestaurantModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md w-[calc(100%-2rem)] rounded-2xl p-5 sm:p-6 max-h-[85dvh] overflow-hidden">
+      <DialogContent className="max-w-md w-[calc(100%-2rem)] rounded-2xl p-4 sm:p-5 max-h-[90dvh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold">{mode === 'edit' ? '맛집 수정하기' : '맛집 등록하기'}</DialogTitle>
           <DialogDescription className="text-sm text-gray-500">
@@ -365,7 +365,7 @@ export default function AddRestaurantModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto max-h-[65dvh] pb-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 overflow-y-auto pb-2 pr-1 max-h-[72dvh] sm:max-h-[76dvh]">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="restaurant-name">맛집 이름</Label>
             <Input
@@ -506,18 +506,18 @@ export default function AddRestaurantModal({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-2 pt-1">
+          <DialogFooter className="flex-col-reverse gap-2 pt-1 sm:flex-row sm:gap-2">
             <Button
               type="button"
               variant="outline"
-              className="flex-1"
+              className="h-10 flex-1 rounded-xl"
               onClick={() => handleClose(false)}
               disabled={submitting}
             >
               취소
             </Button>
 
-            <Button type="submit" className="flex-1" disabled={fieldsDisabled}>
+            <Button type="submit" className="h-10 flex-1 rounded-xl" disabled={fieldsDisabled}>
               {submitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
