@@ -3,12 +3,18 @@ import { Search, X } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch?: (query: string) => void;
+  isOpen?: boolean;
+  onToggle?: (nextOpen: boolean) => void;
 }
 
-export default function SearchBar({ onSearch }: SearchBarProps) {
+export default function SearchBar({ onSearch, isOpen = false, onToggle }: SearchBarProps) {
   const [value, setValue] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(isOpen);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setIsExpanded(isOpen);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isExpanded) {
@@ -23,12 +29,13 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
 
   const handleClose = () => {
     setIsExpanded(false);
+    onToggle?.(false);
   };
 
   return (
     <div className="relative z-20 flex shrink-0 items-center justify-end">
       {isExpanded ? (
-        <div className="flex w-[min(220px,calc(100vw-8rem))] items-center gap-2 rounded-full border border-orange-200 bg-white/95 px-2 py-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] sm:w-[248px]">
+        <div className="relative z-50 flex w-[min(220px,calc(100vw-8rem))] items-center gap-2 rounded-full border border-orange-200 bg-white/95 px-2 py-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] sm:w-[248px]">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-50 text-primary">
             <Search size={15} />
           </div>
@@ -58,8 +65,11 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       ) : (
         <button
           type="button"
-          onClick={() => setIsExpanded(true)}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-orange-200 bg-white/95 text-primary shadow-[0_10px_24px_rgba(15,23,42,0.12)] transition active:scale-95"
+          onClick={() => {
+            setIsExpanded(true);
+            onToggle?.(true);
+          }}
+          className="relative z-50 flex h-10 w-10 items-center justify-center rounded-full border border-orange-200 bg-white/95 text-primary shadow-[0_10px_24px_rgba(15,23,42,0.12)] transition active:scale-95"
           aria-label="검색 열기"
         >
           <Search size={16} />

@@ -5,6 +5,8 @@ import { LayoutGrid, Utensils, UtensilsCrossed, Fish, Coffee, Flame, Sandwich, M
 interface CategoryScrollProps {
   selectedCategory: Category | null;
   onSelectCategory: (category: Category | null) => void;
+  isOpen?: boolean;
+  onToggle?: (nextOpen: boolean) => void;
 }
 
 const CATEGORY_COLORS: Record<Category | '전체', string> = {
@@ -29,9 +31,13 @@ const CATEGORIES: { label: '전체' | Category; icon: React.ReactNode }[] = [
   { label: '기타', icon: <MoreHorizontal size={14} /> },
 ];
 
-export default function CategoryScroll({ selectedCategory, onSelectCategory }: CategoryScrollProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export default function CategoryScroll({ selectedCategory, onSelectCategory, isOpen = false, onToggle }: CategoryScrollProps) {
+  const [isExpanded, setIsExpanded] = useState(isOpen);
   const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsExpanded(isOpen);
+  }, [isOpen]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -50,6 +56,7 @@ export default function CategoryScroll({ selectedCategory, onSelectCategory }: C
     onSelectCategory(label === '전체' ? null : label);
     if (isMobile) {
       setIsExpanded(false);
+      onToggle?.(false);
     }
   };
 
@@ -77,8 +84,12 @@ export default function CategoryScroll({ selectedCategory, onSelectCategory }: C
       <div className="relative z-20 w-full md:hidden">
         <button
           type="button"
-          onClick={() => setIsExpanded((value) => !value)}
-          className="flex h-9 w-full items-center justify-between gap-2 rounded-full border border-gray-200 bg-white/95 px-3 text-[13px] font-semibold text-gray-700 shadow-sm"
+          onClick={() => {
+            const nextValue = !isExpanded;
+            setIsExpanded(nextValue);
+            onToggle?.(nextValue);
+          }}
+          className="relative z-50 flex h-9 w-full items-center justify-between gap-2 rounded-full border border-gray-200 bg-white/95 px-3 text-[13px] font-semibold text-gray-700 shadow-sm"
         >
           <span className="flex items-center gap-2 truncate">
             <span className="flex h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: currentColor }} />
@@ -87,13 +98,13 @@ export default function CategoryScroll({ selectedCategory, onSelectCategory }: C
           <ChevronDown size={15} className={`shrink-0 transition ${isExpanded ? 'rotate-180' : ''}`} />
         </button>
         {isExpanded ? (
-          <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-gray-100 bg-white/95 p-2 shadow-sm">
+          <div className="relative z-50 mt-2 flex flex-wrap gap-2 rounded-2xl border border-gray-100 bg-white/95 p-2 shadow-sm">
             {CATEGORIES.map(({ label }) => renderChip(label, label === '전체' ? selectedCategory === null : selectedCategory === label))}
           </div>
         ) : null}
       </div>
     ),
-    [currentColor, currentLabel, isExpanded, selectedCategory],
+    [currentColor, currentLabel, isExpanded, onToggle, selectedCategory],
   );
 
   return (

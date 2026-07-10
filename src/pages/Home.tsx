@@ -24,6 +24,8 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const [, setLocation] = useLocation();
 
@@ -134,6 +136,34 @@ export default function Home() {
     setSelectedRestaurantId(null);
   };
 
+  const closeMobileOverlays = () => {
+    setIsSearchOpen(false);
+    setIsCategoryOpen(false);
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleOpenMenu = () => {
+    setIsSearchOpen(false);
+    setIsCategoryOpen(false);
+    setIsMobileMenuOpen((value) => !value);
+  };
+
+  const handleOpenSearch = (nextOpen: boolean) => {
+    setIsSearchOpen(nextOpen);
+    if (nextOpen) {
+      setIsCategoryOpen(false);
+      setIsMobileMenuOpen(false);
+    }
+  };
+
+  const handleOpenCategory = (nextOpen: boolean) => {
+    setIsCategoryOpen(nextOpen);
+    if (nextOpen) {
+      setIsSearchOpen(false);
+      setIsMobileMenuOpen(false);
+    }
+  };
+
   const handleCategorySelect = (category: Category | null) => {
     setSelectedCategory(category);
     if (selectedRestaurant && category && selectedRestaurant.category !== category) {
@@ -179,7 +209,7 @@ export default function Home() {
 
   const handleAdminClick = () => {
     setLocation('/admin');
-    setIsMobileMenuOpen(false);
+    closeMobileOverlays();
   };
 
   return (
@@ -198,23 +228,23 @@ export default function Home() {
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <SearchBar onSearch={setSearchQuery} />
+            <SearchBar onSearch={setSearchQuery} isOpen={isSearchOpen} onToggle={handleOpenSearch} />
             <div className="min-w-0 flex-1">
-              <CategoryScroll selectedCategory={selectedCategory} onSelectCategory={handleCategorySelect} />
+              <CategoryScroll selectedCategory={selectedCategory} onSelectCategory={handleCategorySelect} isOpen={isCategoryOpen} onToggle={handleOpenCategory} />
             </div>
           </div>
           <div ref={mobileMenuRef} className="relative shrink-0 md:hidden">
             <button
               type="button"
-              onClick={() => setIsMobileMenuOpen((value) => !value)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-[0_8px_24px_rgba(15,23,42,0.12)]"
+              onClick={handleOpenMenu}
+              className="relative z-[60] flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-[0_8px_24px_rgba(15,23,42,0.12)]"
               aria-label="메뉴 열기"
             >
               {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
 
             {isMobileMenuOpen ? (
-              <div className="absolute right-0 top-full z-40 mt-2 w-[220px] rounded-[20px] border border-gray-200 bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.16)]">
+              <div className="absolute right-0 top-full z-[55] mt-2 w-[220px] rounded-[20px] border border-gray-200 bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.16)]">
                 <div className="mb-2 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 text-[12px] text-gray-600">
                   {currentUser ? (
                     <div className="flex items-center gap-2 overflow-hidden">
@@ -234,6 +264,8 @@ export default function Home() {
                   onClick={() => {
                     setShowOnlyFavorites((value) => !value);
                     setIsMobileMenuOpen(false);
+                    setIsSearchOpen(false);
+                    setIsCategoryOpen(false);
                   }}
                   className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] font-semibold ${
                     showOnlyFavorites ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-700'
@@ -276,6 +308,8 @@ export default function Home() {
                     onClick={() => {
                       handleLogin();
                       setIsMobileMenuOpen(false);
+                      setIsSearchOpen(false);
+                      setIsCategoryOpen(false);
                     }}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[13px] font-semibold text-gray-700"
                   >
