@@ -4,6 +4,7 @@ import { approveRestaurant, deleteRestaurant } from '@/lib/restaurants';
 import { Star, MapPin, Navigation, Clock, BookOpen, Phone, X, Trash2, Pencil, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { createReport, type ReportReason } from '@/lib/reports';
 
 interface BottomCardProps {
   restaurant: Restaurant | null;
@@ -77,6 +78,9 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
   const [reviewRating, setReviewRating] = useState(5);
   const [reviews, setReviews] = useState<LocalReview[]>([]);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<ReportReason>('잘못된 위치');
+  const [reportMessage, setReportMessage] = useState('');
   const contactInfo = restaurant as RestaurantWithOptionalContact;
   const isOwner = Boolean(currentUser?.id && restaurant.ownerId === currentUser.id);
   const isAdmin = Boolean(currentUser?.email === 'dhvofjeodl1@gmail.com');
@@ -154,6 +158,25 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
       console.error('[matjip-map] 승인 실패', error);
       toast({ variant: 'destructive', title: '승인에 실패했습니다', description: errorMessage });
+    }
+  };
+
+  const handleReportSubmit = async () => {
+    try {
+      await createReport({
+        restaurantId: restaurant.id,
+        reason: reportReason,
+        message: reportMessage.trim(),
+        reporterEmail: currentUser?.email ?? null,
+      });
+      toast({ title: '신고가 접수되었습니다', description: '관리자가 검토한 뒤 처리하겠습니다.' });
+      setIsReportOpen(false);
+      setReportReason('잘못된 위치');
+      setReportMessage('');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      console.error('[matjip-map] 신고 실패', error);
+      toast({ variant: 'destructive', title: '신고에 실패했습니다', description: errorMessage });
     }
   };
 
@@ -290,6 +313,13 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
             ) : null}
 
             <div className="flex flex-col gap-2 border-t border-gray-100 pt-2.5">
+              <button
+                type="button"
+                onClick={() => setIsReportOpen(true)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-semibold text-red-600"
+              >
+                🚨 신고하기
+              </button>
               {canEditDelete ? (
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -395,6 +425,45 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
           </div>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {isReportOpen ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-3">
+            <div className="w-full max-w-md rounded-[24px] border border-gray-200 bg-white p-4 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">🚨 신고하기</h3>
+                <button type="button" onClick={() => setIsReportOpen(false)} className="rounded-full p-2 text-gray-500" aria-label="신고 닫기">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="mt-4 space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  사유
+                  <select value={reportReason} onChange={(event) => setReportReason(event.target.value as ReportReason)} className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none">
+                    <option value="잘못된 위치">잘못된 위치</option>
+                    <option value="폐업">폐업</option>
+                    <option value="중복 등록">중복 등록</option>
+                    <option value="부적절한 내용">부적절한 내용</option>
+                    <option value="기타">기타(직접 입력)</option>
+                  </select>
+                </label>
+                <label className="block text-sm font-medium text-gray-700">
+                  내용
+                  <textarea value={reportMessage} onChange={(event) => setReportMessage(event.target.value)} rows={4} className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none" placeholder="추가 설명을 적어주세요." />
+                </label>
+              </div>
+              <div className="mt-5 flex justify-end gap-2">
+                <button type="button" onClick={() => setIsReportOpen(false)} className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700">
+                  취소
+                </button>
+                <button type="button" onClick={handleReportSubmit} className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white">
+                  제출
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isImagePreviewOpen && hasImage ? (

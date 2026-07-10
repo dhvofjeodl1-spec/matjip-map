@@ -3,12 +3,15 @@ import { supabase, ADMIN_EMAILS, isAdminEmail } from '@/lib/supabase';
 import { approveRestaurant, deleteRestaurant, fetchAllRestaurants, setRestaurantApprovalStatus } from '@/lib/restaurants';
 import { Restaurant } from '@/lib/mock-data';
 import AddRestaurantModal from '@/components/AddRestaurantModal';
+import { fetchReports, type ReportRecord } from '@/lib/reports';
+import { getNoticeContent, setNoticeContent } from '@/lib/notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Search, CheckCircle2, XCircle, Trash2, Edit3 } from 'lucide-react';
+import { LogOut, Search, CheckCircle2, XCircle, Trash2, Edit3, ShieldAlert } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 const STATUS_FILTERS = ['전체', '승인대기', '승인완료'] as const;
 const SORT_OPTIONS = ['최신순', '오래된순'] as const;
@@ -31,8 +34,13 @@ export default function Admin() {
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
-  const [showUnauthorized, setShowUnauthorized] = useState(false);
+  const [reportCount, setReportCount] = useState(0);
+  const [reports, setReports] = useState<ReportRecord[]>([]);
+  const [todayRegisteredCount, setTodayRegisteredCount] = useState(0);
+  const [noticeText, setNoticeText] = useState(getNoticeContent());
+  const [savingNotice, setSavingNotice] = useState(false);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     const getUser = async () => {
@@ -75,10 +83,25 @@ export default function Admin() {
   }, [currentUser, refreshVersion, toast]);
 
   useEffect(() => {
-    if (!authLoading && currentUser && !isAdminEmail(currentUser.email)) {
-      setShowUnauthorized(true);
+    const loadReports = async () => {
+      try {
+        const items = await fetchReports();
+        setReports(items);
+        setReportCount(items.length);
+      } catch {
+        setReports([]);
+        setReportCount(0);
+      }
+    };
+
+    void loadReports();
+  }, [refreshVersion]);
+
+  useEffect(() => {
+    if (!authLoading && (!currentUser || !isAdminEmail(currentUser.email))) {
+      setLocation('/404');
     }
-  }, [authLoading, currentUser]);
+  }, [authLoading, currentUser, setLocation]);
 
   const filteredRestaurants = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -105,8 +128,30 @@ export default function Admin() {
 
   const pendingCount = restaurants.filter((item) => item.isApproved === false).length;
   const approvedCount = restaurants.filter((item) => item.isApproved === true).length;
+  const todayRegisteredCountValue = useMemo(() => {
+    const today = new Date();
+    const todayString = today.toISOString().slice(0, 10);
+    return restaurants.filter((item) => item.createdAt?.slice(0, 10) === todayString).length;
+  }, [restaurants]);
+
+  useEffect(() => {
+    setTodayRegisteredCount(todayRegisteredCountValue);
+  }, [todayRegisteredCountValue]);
 
   const refreshList = () => setRefreshVersion((value) => value + 1);
+
+  const handleSaveNotice = async () => {
+    setSavingNotice(true);
+    try {
+      setNoticeContent(noticeText);
+      toast({ title: '공지사항이 저장되었습니다.' });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: '공지사항 저장에 실패했습니다.' });
+    } finally {
+      setSavingNotice(false);
+    }
+  };
 
   const handleApprove = async (restaurantId: string) => {
     try {
@@ -165,13 +210,7 @@ export default function Admin() {
   }
 
   if (!currentUser || !isAdminEmail(currentUser.email)) {
-    return (
-      <div className="p-6">
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
-          관리자만 접근 가능합니다.
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -185,12 +224,20 @@ export default function Admin() {
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <div className="text-sm text-gray-500">승인대기</div>
+              <div className="text-sm text-gray-500">승인 대기</div>
               <div className="mt-2 text-2xl font-semibold">{pendingCount}건</div>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <div className="text-sm text-gray-500">승인완료</div>
+              <div className="text-sm text-gray-500">승인 완료</div>
               <div className="mt-2 text-2xl font-semibold">{approvedCount}건</div>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="text-sm text-gray-500">오늘 등록</div>
+              <div className="mt-2 text-2xl font-semibold">{todayRegisteredCount}건</div>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="text-sm text-gray-500">신고 접수</div>
+              <div className="mt-2 text-2xl font-semibold">{reportCount}건</div>
             </div>
           </div>
         </div>
@@ -245,15 +292,38 @@ export default function Admin() {
         </div>
       </div>
 
-      <div className="grid gap-4">
-        {filteredRestaurants.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
-            조건에 맞는 식당이 없습니다.
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => window.location.assign('/admin/reports')}>
+          <ShieldAlert size={16} /> 신고 관리
+        </Button>
+      </div>
+
+      <div className="mb-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">공지사항 편집</h2>
+            <p className="mt-1 text-sm text-gray-500">첫 방문 팝업에 노출되는 공지 내용을 관리합니다.</p>
           </div>
-        ) : (
-          filteredRestaurants.map((restaurant) => {
-            const canManage = isAdminEmail(currentUser.email);
-            return (
+          <Button onClick={handleSaveNotice} disabled={savingNotice}>
+            {savingNotice ? '저장 중...' : '공지 저장'}
+          </Button>
+        </div>
+        <textarea
+          value={noticeText}
+          onChange={(event) => setNoticeText(event.target.value)}
+          rows={6}
+          className="mt-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm outline-none"
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="space-y-4">
+          {filteredRestaurants.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
+              조건에 맞는 식당이 없습니다.
+            </div>
+          ) : (
+            filteredRestaurants.map((restaurant) => (
               <div key={restaurant.id} className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 space-y-2">
@@ -291,9 +361,27 @@ export default function Admin() {
                   </div>
                 </div>
               </div>
-            );
-          })
-        )}
+            ))
+          )}
+        </div>
+
+        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">최근 활동</h2>
+          <div className="mt-4 space-y-3">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3 text-sm text-gray-600">
+              <div className="font-semibold text-gray-800">최신 등록</div>
+              <div className="mt-1">{restaurants[0]?.name ?? '등록된 식당 없음'}</div>
+            </div>
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3 text-sm text-gray-600">
+              <div className="font-semibold text-gray-800">최신 신고</div>
+              <div className="mt-1">{reports[0] ? `${reports[0].reason} · ${reports[0].status}` : '신고 없음'}</div>
+            </div>
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3 text-sm text-gray-600">
+              <div className="font-semibold text-gray-800">최신 사용자</div>
+              <div className="mt-1">{currentUser?.email ?? '로그인 필요'}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>

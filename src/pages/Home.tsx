@@ -7,7 +7,7 @@ import AddRestaurantModal from '@/components/AddRestaurantModal';
 import { Category, Restaurant } from '@/lib/mock-data';
 import { fetchAllRestaurants } from '@/lib/restaurants';
 import { supabase, ADMIN_EMAILS } from '@/lib/supabase';
-import { Plus, Loader2, Heart, LogIn, LogOut, UserCircle2, Menu, X, Shield } from 'lucide-react';
+import { Plus, Loader2, Heart, LogIn, LogOut, UserCircle2, Menu, X, Shield, Info, Mail } from 'lucide-react';
 import { useLocation } from 'wouter';
 
 export default function Home() {
@@ -276,6 +276,34 @@ export default function Home() {
                     즐겨찾기만 보기
                   </span>
                   {showOnlyFavorites ? <span className="text-[11px]">ON</span> : null}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocation('/about');
+                    setIsMobileMenuOpen(false);
+                    setIsSearchOpen(false);
+                    setIsCategoryOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl bg-gray-50 px-3 py-2 text-[13px] font-semibold text-gray-700"
+                >
+                  <Info size={14} />
+                  서비스 소개
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocation('/contact');
+                    setIsMobileMenuOpen(false);
+                    setIsSearchOpen(false);
+                    setIsCategoryOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl bg-gray-50 px-3 py-2 text-[13px] font-semibold text-gray-700"
+                >
+                  <Mail size={14} />
+                  문의하기
                 </button>
 
                 {isAdmin ? (
