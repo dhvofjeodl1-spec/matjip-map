@@ -1,7 +1,7 @@
 {
-  "name": "맛집맵",
-  "short_name": "맛집맵",
-  "description": "맛집 위치와 리뷰를 한눈에 보는 지도 앱",
+  "name": "맛지도",
+  "short_name": "맛지도",
+  "description": "직접 등록하는 맛집 지도 앱",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fff7ed",

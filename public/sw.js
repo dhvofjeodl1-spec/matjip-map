@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matjip-map-cache-v1';
+const CACHE_NAME = 'matjido-cache-v1';
 const APP_SHELL = ['/','/index.html','/manifest.json','/favicon.svg'];
 
 self.addEventListener('install', (event) => {

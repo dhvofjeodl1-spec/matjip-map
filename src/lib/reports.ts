@@ -13,7 +13,7 @@ export interface ReportRecord {
 }
 
 const TABLE_NAME = 'reports';
-const STORAGE_KEY = 'matjip-map-reports';
+const STORAGE_KEY = 'matjido-reports';
 
 function readLocalReports(): ReportRecord[] {
   if (typeof window === 'undefined') {

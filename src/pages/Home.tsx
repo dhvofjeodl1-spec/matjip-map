@@ -182,11 +182,24 @@ export default function Home() {
   };
 
   const handleRestaurantSaved = useCallback(
-    async (restaurantId?: string) => {
+    async (payload?: { id?: string; isApproved?: boolean }) => {
       await loadRestaurants();
-      if (restaurantId) {
-        setSelectedRestaurantId(restaurantId);
+      // disable following mode in MapView by event
+      try {
+        window.dispatchEvent(new Event('disable-follow'));
+      } catch (e) {
+        // ignore
       }
+
+      const restaurantId = payload?.id;
+      const isApproved = payload?.isApproved ?? false;
+      if (restaurantId && isApproved) {
+        setSelectedRestaurantId(restaurantId);
+      } else {
+        // ensure no selection for unapproved
+        setSelectedRestaurantId(undefined);
+      }
+
       setIsEditModalOpen(false);
       setEditingRestaurant(null);
     },

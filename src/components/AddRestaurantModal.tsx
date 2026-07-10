@@ -27,7 +27,8 @@ import { addRestaurant, updateRestaurant } from '@/lib/restaurants';
 interface AddRestaurantModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRegistered: (restaurantId?: string) => void;
+  // payload: { id, isApproved }
+  onRegistered: (payload?: { id?: string; isApproved?: boolean }) => void;
   mode?: 'create' | 'edit';
   restaurant?: Restaurant | null;
   currentUser?: { id: string; email: string | null } | null;
@@ -55,20 +56,20 @@ const geocodeAddress = (address: string): Promise<GeocodeResult> => {
     const naver = (window as any).naver;
 
     if (!naver?.maps?.Service?.geocode) {
-      reject(new Error('?ㅼ씠踰?Geocoding 紐⑤뱢??濡쒕뱶?섏? ?딆븯?듬땲??'));
+      reject(new Error('네이버 지도 Geocoding 서비스를 불러오지 못했습니다.'));
       return;
     }
 
     naver.maps.Service.geocode({ query: address }, (status: any, response: any) => {
       if (status !== naver.maps.Service.Status.OK) {
-        reject(new Error('二쇱냼瑜?醫뚰몴濡?蹂?섑븯吏 紐삵뻽?듬땲?? ?꾨줈紐?二쇱냼 ?먮뒗 吏踰?二쇱냼瑜??낅젰??二쇱꽭??'));
+        reject(new Error('주소를 찾을 수 없습니다. 입력하신 주소를 확인해 주세요.'));
         return;
       }
 
       const item = response.v2?.addresses?.[0];
 
       if (!item) {
-        reject(new Error('二쇱냼 寃??寃곌낵媛 ?놁뒿?덈떎. ?꾨줈紐?二쇱냼 ?먮뒗 吏踰?二쇱냼瑜??낅젰??二쇱꽭??'));
+        reject(new Error('해당 주소에 대한 결과가 없습니다. 정확한 주소를 입력해 주세요.'));
         return;
       }
 
@@ -155,7 +156,7 @@ export default function AddRestaurantModal({
     if (!file) return;
 
     if (!isSupabaseConfigured || !supabase) {
-      toast({ variant: 'destructive', title: '?낅줈??遺덇?', description: 'Supabase ?섍꼍???ㅼ젙?섏? ?딆븯?듬땲??' });
+      toast({ variant: 'destructive', title: '이미지 업로드 오류', description: 'Supabase가 설정되어 있지 않아 업로드할 수 없습니다.' });
       return;
     }
 
@@ -172,11 +173,11 @@ export default function AddRestaurantModal({
 
       const { data } = supabase.storage.from('restaurant-images').getPublicUrl(fileName);
       setForm((prev) => ({ ...prev, imageUrl: data.publicUrl }));
-      toast({ title: '?대?吏媛 ?낅줈?쒕릺?덉뒿?덈떎', description: '?깅줉/?섏젙 ??諛붾줈 諛섏쁺?⑸땲??' });
+      toast({ title: '이미지 업로드 완료', description: '이미지가 정상적으로 업로드되었습니다.' });
     } catch (error) {
-      console.error('[matjip-map] ?대?吏 ?낅줈???ㅽ뙣', error);
-      const message = error instanceof Error ? error.message : '肄섏넄 ?ㅻ쪟瑜??뺤씤?댁＜?몄슂.';
-      toast({ variant: 'destructive', title: '?대?吏 ?낅줈???ㅽ뙣', description: message });
+      console.error('[맛지도] 이미지 업로드 실패', error);
+      const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      toast({ variant: 'destructive', title: '이미지 업로드 실패', description: message });
     } finally {
       setUploadingImage(false);
     }
@@ -219,8 +220,8 @@ export default function AddRestaurantModal({
     if (!form.name.trim() || !form.address.trim() || !form.menuName.trim() || !form.shortReview.trim()) {
       toast({
         variant: 'destructive',
-        title: '?낅젰媛믪쓣 ?뺤씤?댁＜?몄슂',
-        description: '?앸떦 ?대쫫, 二쇱냼, ???硫붾돱, ??以??뚭컻???꾩닔?낅땲??',
+        title: '필수 항목을 확인하세요',
+        description: '이름, 주소, 대표메뉴, 한 줄 후기는 필수 항목입니다.',
       });
       return;
     }
@@ -228,8 +229,8 @@ export default function AddRestaurantModal({
     if (Number.isNaN(price) || price < 0) {
       toast({
         variant: 'destructive',
-        title: '媛寃⑹쓣 ?뺤씤?댁＜?몄슂',
-        description: '媛寃⑹? 0 ?댁긽???レ옄濡??낅젰?댁＜?몄슂.',
+        title: '가격을 확인하세요',
+        description: '가격은 0 이상의 숫자여야 합니다.',
       });
       return;
     }
@@ -237,8 +238,8 @@ export default function AddRestaurantModal({
     if (form.phone.trim() && !/^\+?[0-9\s()-]{6,20}$/.test(form.phone.trim())) {
       toast({
         variant: 'destructive',
-        title: '?꾪솕踰덊샇瑜??뺤씤?댁＜?몄슂',
-        description: '?꾪솕踰덊샇???レ옄, 怨듬갚, ?섏씠?? 愿꾪샇留??ъ슜??二쇱꽭??',
+        title: '전화번호를 확인하세요',
+        description: '전화번호는 숫자, 공백, 괄호 및 하이픈만 허용됩니다.',
       });
       return;
     }
@@ -246,8 +247,8 @@ export default function AddRestaurantModal({
     if (!isValidUrl(form.blogReviewUrl)) {
       toast({
         variant: 'destructive',
-        title: '釉붾줈洹?由щ럭 URL???뺤씤?댁＜?몄슂',
-        description: '?щ컮瑜?URL ?뺤떇?쇰줈 ?낅젰??二쇱꽭??',
+        title: '블로그 URL을 확인하세요',
+        description: '유효한 URL 형식인지 확인해 주세요.',
       });
       return;
     }
@@ -282,7 +283,8 @@ export default function AddRestaurantModal({
         if (hasDuplicate) {
           toast({
             variant: 'destructive',
-            title: '?대? 媛숈? 二쇱냼濡??깅줉??留쏆쭛???덉뒿?덈떎.',
+            title: '중복 등록된 주소입니다',
+            description: '입력하신 주소와 동일한 주소의 맛집이 이미 등록되어 있습니다.',
           });
           return;
         }
@@ -305,14 +307,11 @@ export default function AddRestaurantModal({
           rating: Number(form.rating),
         });
 
-        toast({
-          title: 'Restaurant updated successfully',
-          description: `${form.name.trim()} has been updated.`,
-        });
+        toast({ title: '수정되었습니다', description: `${form.name.trim()}이(가) 수정되었습니다.` });
 
         resetForm();
         onOpenChange(false);
-        onRegistered(restaurant.id);
+        onRegistered({ id: restaurant.id, isApproved: restaurant.isApproved ?? false });
         return;
       }
 
@@ -330,24 +329,40 @@ export default function AddRestaurantModal({
         imageUrl: form.imageUrl.trim(),
         rating: Number(form.rating),
         ownerId: currentUser?.id,
-        ownerEmail: currentUser?.email ?? null,
         isApproved: isAdminEmail(currentUser?.email),
       });
 
-      toast({
-        title: 'Restaurant registered successfully',
-        description: `${form.name.trim()} has been registered.`,
-      });
+      // If registered by non-admin, isApproved will be false
+      const wasApproved = isAdminEmail(currentUser?.email);
+      if (wasApproved) {
+        toast({ title: '맛집이 등록되었습니다.', description: '지도에 바로 표시됩니다.' });
+      } else {
+        toast({ title: '맛집이 등록되었습니다.', description: '관리자 승인 후 지도에 공개됩니다.' });
+      }
+
+      // Notify other parts of the app and disable follow mode in MapView
+      try {
+        window.dispatchEvent(new CustomEvent('restaurant-registered', { detail: { id: restaurantId, isApproved: wasApproved } }));
+      } catch (e) {
+        // ignore
+      }
+
+      // Let lists refresh (admin view)
+      try {
+        window.dispatchEvent(new Event('restaurants-changed'));
+      } catch (e) {
+        // ignore
+      }
 
       resetForm();
       onOpenChange(false);
-      onRegistered(restaurantId);
+      onRegistered({ id: restaurantId, isApproved: isAdminEmail(currentUser?.email) });
     } catch (error) {
-      console.error('[matjip-map] ?앸떦 ?깅줉 ?ㅽ뙣', error);
-      const message = error instanceof Error ? error.message : '肄섏넄 ?ㅻ쪟瑜??뺤씤?댁＜?몄슂.';
+      console.error('[맛지도] 맛집 등록 중 오류가 발생했습니다.', error);
+      const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
       toast({
         variant: 'destructive',
-        title: '?깅줉???ㅽ뙣?덉뒿?덈떎',
+        title: '등록에 실패했습니다. 다시 시도해주세요.',
         description: message,
       });
     } finally {

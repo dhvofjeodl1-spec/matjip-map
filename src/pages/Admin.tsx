@@ -45,13 +45,13 @@ export default function Admin() {
   const [todayRegisteredCount, setTodayRegisteredCount] = useState(0);
   const [noticeTitle, setNoticeTitle] = useState('📢 공지사항');
   const [noticeText, setNoticeText] = useState('');
-  const [aboutTitle, setAboutTitle] = useState('맛집맵 소개');
+  const [aboutTitle, setAboutTitle] = useState('맛지도 소개');
   const [aboutIntro, setAboutIntro] = useState('');
   const [aboutRegistrationMethod, setAboutRegistrationMethod] = useState('');
   const [aboutApprovalSystem, setAboutApprovalSystem] = useState('');
   const [aboutOperatingPrinciples, setAboutOperatingPrinciples] = useState('');
   const [aboutFaq, setAboutFaq] = useState('');
-  const [contactTitle, setContactTitle] = useState('맛집맵 문의');
+  const [contactTitle, setContactTitle] = useState('맛지도 문의');
   const [contactEmail, setContactEmail] = useState('mailto:dhvofjeodl1@gmail.com');
   const [contactInquiryGuide, setContactInquiryGuide] = useState('');
   const [contactBugGuide, setContactBugGuide] = useState('');
@@ -137,13 +137,13 @@ export default function Admin() {
 
         setNoticeTitle(readSiteContentText(noticeData, 'title', '📢 공지사항'));
         setNoticeText(readSiteContentText(noticeData, 'body', ''));
-        setAboutTitle(readSiteContentText(aboutData, 'pageTitle', '맛집맵 소개'));
+        setAboutTitle(readSiteContentText(aboutData, 'pageTitle', '맛지도 소개'));
         setAboutIntro(readSiteContentText(aboutData, 'intro', ''));
         setAboutRegistrationMethod(readSiteContentText(aboutData, 'registrationMethod', ''));
         setAboutApprovalSystem(readSiteContentText(aboutData, 'approvalSystem', ''));
         setAboutOperatingPrinciples(readSiteContentText(aboutData, 'operatingPrinciples', ''));
         setAboutFaq(readSiteContentText(aboutData, 'faq', ''));
-        setContactTitle(readSiteContentText(contactData, 'pageTitle', '맛집맵 문의'));
+        setContactTitle(readSiteContentText(contactData, 'pageTitle', '맛지도 문의'));
         setContactEmail(readSiteContentText(contactData, 'contactEmailOrUrl', 'mailto:dhvofjeodl1@gmail.com'));
         setContactInquiryGuide(readSiteContentText(contactData, 'inquiryGuide', ''));
         setContactBugGuide(readSiteContentText(contactData, 'bugReportGuide', ''));
@@ -168,7 +168,7 @@ export default function Admin() {
       })
       .filter((restaurant) => {
         if (!query) return true;
-        return [restaurant.name, restaurant.address, restaurant.ownerEmail ?? '']
+        return [restaurant.name, restaurant.address]
           .join(' ')
           .toLowerCase()
           .includes(query);
@@ -321,8 +321,8 @@ export default function Admin() {
       <div className="mb-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">관리자 페이지</h1>
-            <p className="mt-1 text-sm text-gray-500">등록된 맛집을 검토하고 관리합니다.</p>
+            <h1 className="text-2xl font-bold">맛지도 관리자 페이지</h1>
+            <p className="mt-1 text-sm text-gray-500">맛지도에 등록된 맛집을 검토하고 관리합니다.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -353,7 +353,7 @@ export default function Admin() {
                 id="admin-search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="맛집명, 주소, 등록자 이메일 검색"
+                placeholder="맛집명, 주소 검색"
               />
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white">
                 <Search size={18} />
@@ -404,8 +404,8 @@ export default function Admin() {
       <div className="mb-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">서비스 콘텐츠 편집</h2>
-            <p className="mt-1 text-sm text-gray-500">공개 페이지의 공지, 소개, 문의 안내를 관리합니다.</p>
+            <h2 className="text-lg font-semibold">맛지도 콘텐츠 편집</h2>
+            <p className="mt-1 text-sm text-gray-500">맛지도 공개 페이지의 공지, 소개, 문의 안내를 관리합니다.</p>
           </div>
           <Button onClick={handleSaveContent} disabled={savingContent}>
             {savingContent ? '저장 중...' : '콘텐츠 저장'}
@@ -414,7 +414,7 @@ export default function Admin() {
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <h3 className="text-sm font-semibold">공지사항</h3>
+            <h3 className="text-sm font-semibold">맛지도 공지사항</h3>
             <Label htmlFor="notice-title" className="mt-4 block text-sm">제목</Label>
             <Input id="notice-title" value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} className="mt-2" />
             <Label htmlFor="notice-body" className="mt-4 block text-sm">본문</Label>
@@ -428,7 +428,7 @@ export default function Admin() {
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <h3 className="text-sm font-semibold">서비스 소개</h3>
+            <h3 className="text-sm font-semibold">맛지도 서비스 소개</h3>
             <Label htmlFor="about-title" className="mt-4 block text-sm">페이지 제목</Label>
             <Input id="about-title" value={aboutTitle} onChange={(event) => setAboutTitle(event.target.value)} className="mt-2" />
             <Label htmlFor="about-intro" className="mt-4 block text-sm">소개 문구</Label>
@@ -444,7 +444,7 @@ export default function Admin() {
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 lg:col-span-2">
-            <h3 className="text-sm font-semibold">문의하기</h3>
+            <h3 className="text-sm font-semibold">맛지도 문의</h3>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="contact-title" className="block text-sm">페이지 제목</Label>
@@ -455,13 +455,13 @@ export default function Admin() {
                 <Input id="contact-email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} className="mt-2" />
               </div>
             </div>
-            <Label htmlFor="contact-inquiry" className="mt-4 block text-sm">문의 안내</Label>
+            <Label htmlFor="contact-inquiry" className="mt-4 block text-sm">맛지도 문의 안내</Label>
             <textarea id="contact-inquiry" value={contactInquiryGuide} onChange={(event) => setContactInquiryGuide(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
-            <Label htmlFor="contact-bug" className="mt-4 block text-sm">버그 제보 안내</Label>
+            <Label htmlFor="contact-bug" className="mt-4 block text-sm">맛지도 버그 제보 안내</Label>
             <textarea id="contact-bug" value={contactBugGuide} onChange={(event) => setContactBugGuide(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
-            <Label htmlFor="contact-deletion" className="mt-4 block text-sm">삭제 요청 안내</Label>
+            <Label htmlFor="contact-deletion" className="mt-4 block text-sm">맛지도 삭제 요청 안내</Label>
             <textarea id="contact-deletion" value={contactDeletionGuide} onChange={(event) => setContactDeletionGuide(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
-            <Label htmlFor="contact-suggestion" className="mt-4 block text-sm">서비스 제안 안내</Label>
+            <Label htmlFor="contact-suggestion" className="mt-4 block text-sm">맛지도 서비스 제안 안내</Label>
             <textarea id="contact-suggestion" value={contactSuggestionGuide} onChange={(event) => setContactSuggestionGuide(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
           </div>
         </div>
@@ -483,8 +483,6 @@ export default function Admin() {
                       <span>{restaurant.category}</span>
                       <span>·</span>
                       <span>{restaurant.address}</span>
-                      <span>·</span>
-                      <span>{restaurant.ownerEmail ?? '등록자 없음'}</span>
                     </div>
                     <div className="flex flex-wrap gap-2 text-sm text-gray-500">
                       <span>{restaurant.createdAt ? new Date(restaurant.createdAt).toLocaleString() : '등록일 정보 없음'}</span>

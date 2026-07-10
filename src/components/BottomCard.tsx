@@ -140,7 +140,7 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
       onClose?.();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
-      console.error('[matjip-map] 식당 삭제 실패', error);
+      console.error('[맛지도] 식당 삭제 실패', error);
       toast({ variant: 'destructive', title: '삭제에 실패했습니다', description: errorMessage });
     }
   };
@@ -156,7 +156,7 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
       onApprove?.();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
-      console.error('[matjip-map] 승인 실패', error);
+      console.error('[맛지도] 승인 실패', error);
       toast({ variant: 'destructive', title: '승인에 실패했습니다', description: errorMessage });
     }
   };
@@ -175,7 +175,7 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
       setReportMessage('');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
-      console.error('[matjip-map] 신고 실패', error);
+      console.error('[맛지도] 신고 실패', error);
       toast({ variant: 'destructive', title: '신고에 실패했습니다', description: errorMessage });
     }
   };
@@ -350,11 +350,6 @@ export default function BottomCard({ restaurant, currentUser, onClose, onDelete,
                   승인
                 </button>
               )}
-              {restaurant.ownerEmail ? (
-                <div className="rounded-2xl border border-gray-200 bg-white px-3 py-2 text-[11px] text-gray-500">
-                  등록자: {restaurant.ownerEmail}
-                </div>
-              ) : null}
             </div>
 
             <div className="flex flex-wrap gap-2">

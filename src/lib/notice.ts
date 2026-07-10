@@ -1,8 +1,8 @@
-const NOTICE_CONTENT_KEY = 'matjip-map-notice-content';
-const NOTICE_DISMISS_KEY = 'matjip-map-notice-dismiss-until';
+const NOTICE_CONTENT_KEY = 'matjido-notice-content';
+const NOTICE_DISMISS_KEY = 'matjido-notice-dismiss-until';
 
 export const DEFAULT_NOTICE_CONTENT = [
-  '맛집맵 베타 서비스입니다.',
+  '맛지도 베타 서비스입니다.',
   '',
   '등록된 맛집은 관리자 승인 후 공개됩니다.',
   '',

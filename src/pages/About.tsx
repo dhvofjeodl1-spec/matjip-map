@@ -29,7 +29,7 @@ export default function About() {
     () => [
       {
         title: '서비스 소개',
-        body: readText(record, 'intro', '맛집맵은 지역 맛집을 지도 위에서 쉽게 찾고, 등록하고, 확인할 수 있는 베타 서비스입니다.'),
+        body: readText(record, 'intro', '맛지도는 지역 맛집을 지도 위에서 쉽게 찾고, 등록하고, 확인할 수 있는 베타 서비스입니다.'),
       },
       {
         title: '맛집 등록 방법',
@@ -63,10 +63,10 @@ export default function About() {
         </div>
 
         <div className="rounded-[24px] border border-gray-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">서비스 소개</p>
-          <h1 className="mt-2 text-2xl font-bold">{readText(record, 'pageTitle', '맛집맵 소개')}</h1>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">맛지도 서비스 소개</p>
+          <h1 className="mt-2 text-2xl font-bold">{readText(record, 'pageTitle', '맛지도 소개')}</h1>
           <p className="mt-3 text-sm leading-7 text-gray-600">
-            {readText(record, 'intro', '맛집맵은 지도에서 맛집을 발견하고, 직접 등록하며, 신뢰할 수 있는 정보를 공유하는 서비스입니다.')}
+            {readText(record, 'intro', '맛지도는 지도에서 맛집을 발견하고, 직접 등록하며, 신뢰할 수 있는 정보를 공유하는 서비스입니다.')}
           </p>
         </div>
 

@@ -68,8 +68,8 @@ export default function Contact() {
         </div>
 
         <div className="rounded-[24px] border border-gray-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">문의하기</p>
-          <h1 className="mt-2 text-2xl font-bold">{readText(record, 'pageTitle', '맛집맵 문의')}</h1>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">맛지도 문의</p>
+          <h1 className="mt-2 text-2xl font-bold">{readText(record, 'pageTitle', '맛지도 문의')}</h1>
           <p className="mt-3 text-sm leading-7 text-gray-600">
             {readText(record, 'inquiryGuide', '운영팀으로 바로 연결되는 메일 안내를 제공합니다. 상황에 맞는 항목을 선택해 주세요.')}
           </p>

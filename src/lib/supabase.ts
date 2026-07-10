@@ -26,7 +26,7 @@ if (isSupabaseConfigured) {
 } else {
   // eslint-disable-next-line no-console
   console.warn(
-    '[matjip-map] Supabase 환경변수가 설정되지 않아 등록/조회 기능이 비활성화됩니다. 목업 데이터로 동작합니다.',
+    '[맛지도] Supabase 환경변수가 설정되지 않아 등록/조회 기능이 비활성화됩니다. 목업 데이터로 동작합니다.',
   );
 }
 

@@ -133,6 +133,16 @@ export default function MapView({
   const { toast } = useToast();
 
   useEffect(() => {
+    const handleDisableFollow = () => {
+      isFollowingRef.current = false;
+      setIsFollowing(false);
+    };
+
+    window.addEventListener('disable-follow', handleDisableFollow);
+    return () => window.removeEventListener('disable-follow', handleDisableFollow);
+  }, []);
+
+  useEffect(() => {
     if (!NAVER_MAP_CLIENT_ID) {
       setLoadError('VITE_NAVER_MAP_CLIENT_ID 환경변수가 설정되지 않았습니다.');
       return;

@@ -28,7 +28,6 @@ export interface NewRestaurantInput {
   imageUrl?: string;
   rating?: number;
   ownerId?: string;
-  ownerEmail?: string;
   isApproved?: boolean;
 }
 
@@ -94,7 +93,7 @@ export async function fetchAllRestaurants(user?: { id?: string | null; email?: s
     if (error) throw error;
     return (data ?? []).map(rowToRestaurant);
   } catch (error) {
-    console.error('[matjip-map] Supabase에서 식당 목록을 불러오지 못했습니다. 목업 데이터로 대체합니다.', error);
+    console.error('[맛지도] Supabase에서 식당 목록을 불러오지 못했습니다. 목업 데이터로 대체합니다.', error);
     return MOCK_RESTAURANTS;
   }
 }
@@ -127,7 +126,6 @@ export async function addRestaurant(input: NewRestaurantInput): Promise<string> 
     blog_review_url: input.blogReviewUrl?.trim() || null,
     is_approved: input.isApproved === true,
     owner_id: input.ownerId,
-    owner_email: input.ownerEmail?.trim() || null,
     tags: [],
   };
 

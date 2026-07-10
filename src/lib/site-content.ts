@@ -17,7 +17,7 @@ export interface SiteContentInput {
   updatedBy?: string | null;
 }
 
-const STORAGE_PREFIX = 'matjip-map-site-content';
+const STORAGE_PREFIX = 'matjido-site-content';
 
 const DEFAULT_CONTENTS: Record<string, SiteContentRecord> = {
   notice: {
@@ -25,17 +25,17 @@ const DEFAULT_CONTENTS: Record<string, SiteContentRecord> = {
     title: '📢 공지사항',
     content: {
       title: '📢 공지사항',
-      body: '맛집맵 베타 서비스입니다.\n\n등록된 맛집은 관리자 승인 후 공개됩니다.\n\n잘못된 정보는 신고 기능을 이용해주세요.',
+      body: '맛지도 베타 서비스입니다.\n\n등록된 맛집은 관리자 승인 후 공개됩니다.\n\n잘못된 정보는 신고 기능을 이용해주세요.',
     },
     is_active: true,
     updated_at: new Date().toISOString(),
   },
   about: {
     content_key: 'about',
-    title: '맛집맵 소개',
+    title: '맛지도 소개',
     content: {
-      pageTitle: '맛집맵 소개',
-      intro: '맛집맵은 지도에서 맛집을 발견하고, 직접 등록하며, 신뢰할 수 있는 정보를 공유하는 서비스입니다.',
+      pageTitle: '맛지도 소개',
+      intro: '맛지도는 지도에서 맛집을 발견하고, 직접 등록하며, 신뢰할 수 있는 정보를 공유하는 서비스입니다.',
       registrationMethod: '지도에서 원하는 위치를 선택하고 맛집 정보를 입력하면 관리자의 승인 후 공개됩니다.',
       approvalSystem: '등록된 맛집은 관리자 승인 후 지도에 노출되어 더 신뢰성 있는 정보를 제공합니다.',
       operatingPrinciples: '정확한 정보와 안전한 이용을 위해 잘못된 정보는 신고 기능으로 알려주세요.',
@@ -48,7 +48,7 @@ const DEFAULT_CONTENTS: Record<string, SiteContentRecord> = {
     content_key: 'contact',
     title: '문의하기',
     content: {
-      pageTitle: '맛집맵 문의',
+      pageTitle: '맛지도 문의',
       inquiryGuide: '서비스 이용 관련 문의를 남겨주세요.',
       bugReportGuide: '지도 오류나 화면 문제를 알려주세요.',
       deletionRequestGuide: '부적절한 정보나 잘못된 맛집 등록을 요청하세요.',
