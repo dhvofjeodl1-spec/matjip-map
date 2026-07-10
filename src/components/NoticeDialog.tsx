@@ -1,17 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { dismissNoticeFor24Hours, getNoticeContent, shouldShowNotice } from '@/lib/notice';
+import { dismissNoticeFor24Hours, shouldShowNotice } from '@/lib/notice';
+import { fetchSiteContent } from '@/lib/site-content';
 
 export default function NoticeDialog() {
   const [open, setOpen] = useState(false);
+  const [noticeTitle, setNoticeTitle] = useState('📢 공지사항');
   const [noticeText, setNoticeText] = useState('');
 
   useEffect(() => {
-    if (shouldShowNotice()) {
-      setNoticeText(getNoticeContent());
-      setOpen(true);
-    }
+    const loadNotice = async () => {
+      try {
+        const record = await fetchSiteContent('notice');
+        const body = typeof record.content?.body === 'string' ? record.content.body : '';
+        if (record.is_active && shouldShowNotice()) {
+          setNoticeTitle(record.title || '📢 공지사항');
+          setNoticeText(body);
+          setOpen(true);
+        }
+      } catch {
+        setNoticeTitle('📢 공지사항');
+        setNoticeText('');
+      }
+    };
+
+    void loadNotice();
   }, []);
 
   const lines = useMemo(() => noticeText.split('\n').filter((line) => line.trim().length > 0), [noticeText]);
@@ -29,7 +43,7 @@ export default function NoticeDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-md rounded-[24px] border border-orange-100 p-0">
         <DialogHeader className="px-6 pt-6">
-          <DialogTitle className="text-xl font-semibold text-gray-900">📢 공지사항</DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-gray-900">{noticeTitle}</DialogTitle>
           <DialogDescription className="mt-2 text-sm leading-7 text-gray-600">
             {lines.length > 0 ? (
               <div className="space-y-2">

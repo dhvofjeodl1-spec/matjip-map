@@ -6,7 +6,7 @@ import BottomCard from '@/components/BottomCard';
 import AddRestaurantModal from '@/components/AddRestaurantModal';
 import { Category, Restaurant } from '@/lib/mock-data';
 import { fetchAllRestaurants } from '@/lib/restaurants';
-import { supabase, ADMIN_EMAILS } from '@/lib/supabase';
+import { supabase, isAdminEmail } from '@/lib/supabase';
 import { Plus, Loader2, Heart, LogIn, LogOut, UserCircle2, Menu, X, Shield, Info, Mail } from 'lucide-react';
 import { useLocation } from 'wouter';
 
@@ -44,21 +44,30 @@ export default function Home() {
   }, [loadRestaurants]);
 
   useEffect(() => {
-    const getUser = async () => {
+    let isMounted = true;
+
+    const syncSession = async () => {
       setAuthLoading(true);
-      const { data } = await supabase?.auth.getUser();
-      setCurrentUser(data.user ? { id: data.user.id, email: data.user.email } : null);
+      const { data } = await supabase?.auth.getSession();
+      const user = data.session?.user ?? null;
+      if (!isMounted) return;
+      setCurrentUser(user ? { id: user.id, email: user.email } : null);
       setAuthLoading(false);
     };
 
-    getUser();
+    void syncSession();
 
     const { data: listener } = supabase?.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user;
+      const user = session?.user ?? null;
+      if (!isMounted) return;
       setCurrentUser(user ? { id: user.id, email: user.email } : null);
+      setAuthLoading(false);
     }) ?? { data: null };
 
-    return () => listener?.subscription?.unsubscribe();
+    return () => {
+      isMounted = false;
+      listener?.subscription?.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -90,7 +99,8 @@ export default function Home() {
     }
   }, [favoriteVersion]);
 
-  const isAdmin = Boolean(currentUser?.email && ADMIN_EMAILS.includes(currentUser.email));
+  const email = currentUser?.email?.trim().toLowerCase();
+  const isAdmin = isAdminEmail(email);
   const displayName = currentUser?.email ? currentUser.email.split('@')[0] : 'User';
   const compactDisplayName = displayName.length > 10 ? `${displayName.slice(0, 10)}...` : displayName;
 

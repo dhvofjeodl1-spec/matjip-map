@@ -8,11 +8,15 @@ import Admin from '@/pages/Admin';
 import AdminReports from '@/pages/AdminReports';
 import About from '@/pages/About';
 import Contact from '@/pages/Contact';
-import { supabase, isAdminEmail } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
 
 const queryClient = new QueryClient();
+
+function AppPageShell({ children }: { children: React.ReactNode }) {
+  return <div className="min-h-screen overflow-x-hidden overflow-y-auto bg-gray-50">{children}</div>;
+}
 
 function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null } | null>(null);
@@ -20,14 +24,30 @@ function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase?.auth.getUser();
-      const user = data.user;
+    let isMounted = true;
+
+    const syncSession = async () => {
+      setAuthLoading(true);
+      const { data } = await supabase?.auth.getSession();
+      const user = data.session?.user ?? null;
+      if (!isMounted) return;
       setCurrentUser(user ? { id: user.id, email: user.email } : null);
       setAuthLoading(false);
     };
 
-    getUser();
+    void syncSession();
+
+    const { data: listener } = supabase?.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user ?? null;
+      if (!isMounted) return;
+      setCurrentUser(user ? { id: user.id, email: user.email } : null);
+      setAuthLoading(false);
+    }) ?? { data: null };
+
+    return () => {
+      isMounted = false;
+      listener?.subscription?.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -38,7 +58,10 @@ function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!isAdminEmail(currentUser.email)) {
+    const email = currentUser.email?.trim().toLowerCase();
+    const isAdmin = email === 'dhvofjeodl1@gmail.com';
+
+    if (!isAdmin) {
       setLocation('/404');
     }
   }, [authLoading, currentUser, setLocation]);
@@ -51,7 +74,10 @@ function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!currentUser || !isAdminEmail(currentUser.email)) {
+  const email = currentUser?.email?.trim().toLowerCase();
+  const isAdmin = email === 'dhvofjeodl1@gmail.com';
+
+  if (!currentUser || !isAdmin) {
     return null;
   }
 
@@ -62,20 +88,40 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/about" component={About} />
-      <Route path="/contact" component={Contact} />
-      <Route path="/404" component={NotFound} />
+      <Route path="/about">
+        <AppPageShell>
+          <About />
+        </AppPageShell>
+      </Route>
+      <Route path="/contact">
+        <AppPageShell>
+          <Contact />
+        </AppPageShell>
+      </Route>
+      <Route path="/404">
+        <AppPageShell>
+          <NotFound />
+        </AppPageShell>
+      </Route>
       <Route path="/admin">
         <ProtectedAdminRoute>
-          <Admin />
+          <AppPageShell>
+            <Admin />
+          </AppPageShell>
         </ProtectedAdminRoute>
       </Route>
       <Route path="/admin/reports">
         <ProtectedAdminRoute>
-          <AdminReports />
+          <AppPageShell>
+            <AdminReports />
+          </AppPageShell>
         </ProtectedAdminRoute>
       </Route>
-      <Route component={NotFound} />
+      <Route>
+        <AppPageShell>
+          <NotFound />
+        </AppPageShell>
+      </Route>
     </Switch>
   );
 }

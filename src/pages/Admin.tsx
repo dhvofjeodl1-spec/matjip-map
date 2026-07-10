@@ -4,7 +4,8 @@ import { approveRestaurant, deleteRestaurant, fetchAllRestaurants, setRestaurant
 import { Restaurant } from '@/lib/mock-data';
 import AddRestaurantModal from '@/components/AddRestaurantModal';
 import { fetchReports, type ReportRecord } from '@/lib/reports';
-import { getNoticeContent, setNoticeContent } from '@/lib/notice';
+import { setNoticeContent } from '@/lib/notice';
+import { fetchSiteContent, saveSiteContent, type SiteContentRecord } from '@/lib/site-content';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,11 @@ type StatusFilter = (typeof STATUS_FILTERS)[number];
 type SortOption = (typeof SORT_OPTIONS)[number];
 
 type RestaurantRow = Restaurant & { createdAt?: string };
+
+function readSiteContentText(record: SiteContentRecord | null, key: string, fallback: string) {
+  const value = record?.content?.[key];
+  return typeof value === 'string' ? value : fallback;
+}
 
 export default function Admin() {
   const [isLoading, setIsLoading] = useState(true);
@@ -37,8 +43,21 @@ export default function Admin() {
   const [reportCount, setReportCount] = useState(0);
   const [reports, setReports] = useState<ReportRecord[]>([]);
   const [todayRegisteredCount, setTodayRegisteredCount] = useState(0);
-  const [noticeText, setNoticeText] = useState(getNoticeContent());
-  const [savingNotice, setSavingNotice] = useState(false);
+  const [noticeTitle, setNoticeTitle] = useState('📢 공지사항');
+  const [noticeText, setNoticeText] = useState('');
+  const [aboutTitle, setAboutTitle] = useState('맛집맵 소개');
+  const [aboutIntro, setAboutIntro] = useState('');
+  const [aboutRegistrationMethod, setAboutRegistrationMethod] = useState('');
+  const [aboutApprovalSystem, setAboutApprovalSystem] = useState('');
+  const [aboutOperatingPrinciples, setAboutOperatingPrinciples] = useState('');
+  const [aboutFaq, setAboutFaq] = useState('');
+  const [contactTitle, setContactTitle] = useState('맛집맵 문의');
+  const [contactEmail, setContactEmail] = useState('mailto:dhvofjeodl1@gmail.com');
+  const [contactInquiryGuide, setContactInquiryGuide] = useState('');
+  const [contactBugGuide, setContactBugGuide] = useState('');
+  const [contactDeletionGuide, setContactDeletionGuide] = useState('');
+  const [contactSuggestionGuide, setContactSuggestionGuide] = useState('');
+  const [savingContent, setSavingContent] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -103,6 +122,41 @@ export default function Admin() {
     }
   }, [authLoading, currentUser, setLocation]);
 
+  useEffect(() => {
+    if (!currentUser || !isAdminEmail(currentUser.email)) {
+      return;
+    }
+
+    const loadSiteContentFields = async () => {
+      try {
+        const [noticeData, aboutData, contactData] = await Promise.all([
+          fetchSiteContent('notice'),
+          fetchSiteContent('about'),
+          fetchSiteContent('contact'),
+        ]);
+
+        setNoticeTitle(readSiteContentText(noticeData, 'title', '📢 공지사항'));
+        setNoticeText(readSiteContentText(noticeData, 'body', ''));
+        setAboutTitle(readSiteContentText(aboutData, 'pageTitle', '맛집맵 소개'));
+        setAboutIntro(readSiteContentText(aboutData, 'intro', ''));
+        setAboutRegistrationMethod(readSiteContentText(aboutData, 'registrationMethod', ''));
+        setAboutApprovalSystem(readSiteContentText(aboutData, 'approvalSystem', ''));
+        setAboutOperatingPrinciples(readSiteContentText(aboutData, 'operatingPrinciples', ''));
+        setAboutFaq(readSiteContentText(aboutData, 'faq', ''));
+        setContactTitle(readSiteContentText(contactData, 'pageTitle', '맛집맵 문의'));
+        setContactEmail(readSiteContentText(contactData, 'contactEmailOrUrl', 'mailto:dhvofjeodl1@gmail.com'));
+        setContactInquiryGuide(readSiteContentText(contactData, 'inquiryGuide', ''));
+        setContactBugGuide(readSiteContentText(contactData, 'bugReportGuide', ''));
+        setContactDeletionGuide(readSiteContentText(contactData, 'deletionRequestGuide', ''));
+        setContactSuggestionGuide(readSiteContentText(contactData, 'serviceSuggestionGuide', ''));
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void loadSiteContentFields();
+  }, [currentUser]);
+
   const filteredRestaurants = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
@@ -140,16 +194,65 @@ export default function Admin() {
 
   const refreshList = () => setRefreshVersion((value) => value + 1);
 
-  const handleSaveNotice = async () => {
-    setSavingNotice(true);
+  const handleSaveContent = async () => {
+    if (!currentUser?.email) {
+      toast({ variant: 'destructive', title: '로그인이 필요합니다.' });
+      return;
+    }
+
+    setSavingContent(true);
     try {
       setNoticeContent(noticeText);
-      toast({ title: '공지사항이 저장되었습니다.' });
+      await Promise.all([
+        saveSiteContent(
+          'notice',
+          {
+            title: noticeTitle,
+            content: { title: noticeTitle, body: noticeText },
+            isActive: true,
+          },
+          currentUser.email,
+        ),
+        saveSiteContent(
+          'about',
+          {
+            title: aboutTitle,
+            content: {
+              pageTitle: aboutTitle,
+              intro: aboutIntro,
+              registrationMethod: aboutRegistrationMethod,
+              approvalSystem: aboutApprovalSystem,
+              operatingPrinciples: aboutOperatingPrinciples,
+              faq: aboutFaq,
+            },
+            isActive: true,
+          },
+          currentUser.email,
+        ),
+        saveSiteContent(
+          'contact',
+          {
+            title: contactTitle,
+            content: {
+              pageTitle: contactTitle,
+              contactEmailOrUrl: contactEmail,
+              inquiryGuide: contactInquiryGuide,
+              bugReportGuide: contactBugGuide,
+              deletionRequestGuide: contactDeletionGuide,
+              serviceSuggestionGuide: contactSuggestionGuide,
+            },
+            isActive: true,
+          },
+          currentUser.email,
+        ),
+      ]);
+
+      toast({ title: '서비스 콘텐츠가 저장되었습니다.' });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: '공지사항 저장에 실패했습니다.' });
+      toast({ variant: 'destructive', title: '콘텐츠 저장에 실패했습니다.' });
     } finally {
-      setSavingNotice(false);
+      setSavingContent(false);
     }
   };
 
@@ -301,19 +404,67 @@ export default function Admin() {
       <div className="mb-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">공지사항 편집</h2>
-            <p className="mt-1 text-sm text-gray-500">첫 방문 팝업에 노출되는 공지 내용을 관리합니다.</p>
+            <h2 className="text-lg font-semibold">서비스 콘텐츠 편집</h2>
+            <p className="mt-1 text-sm text-gray-500">공개 페이지의 공지, 소개, 문의 안내를 관리합니다.</p>
           </div>
-          <Button onClick={handleSaveNotice} disabled={savingNotice}>
-            {savingNotice ? '저장 중...' : '공지 저장'}
+          <Button onClick={handleSaveContent} disabled={savingContent}>
+            {savingContent ? '저장 중...' : '콘텐츠 저장'}
           </Button>
         </div>
-        <textarea
-          value={noticeText}
-          onChange={(event) => setNoticeText(event.target.value)}
-          rows={6}
-          className="mt-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm outline-none"
-        />
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <h3 className="text-sm font-semibold">공지사항</h3>
+            <Label htmlFor="notice-title" className="mt-4 block text-sm">제목</Label>
+            <Input id="notice-title" value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} className="mt-2" />
+            <Label htmlFor="notice-body" className="mt-4 block text-sm">본문</Label>
+            <textarea
+              id="notice-body"
+              value={noticeText}
+              onChange={(event) => setNoticeText(event.target.value)}
+              rows={6}
+              className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none"
+            />
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <h3 className="text-sm font-semibold">서비스 소개</h3>
+            <Label htmlFor="about-title" className="mt-4 block text-sm">페이지 제목</Label>
+            <Input id="about-title" value={aboutTitle} onChange={(event) => setAboutTitle(event.target.value)} className="mt-2" />
+            <Label htmlFor="about-intro" className="mt-4 block text-sm">소개 문구</Label>
+            <textarea id="about-intro" value={aboutIntro} onChange={(event) => setAboutIntro(event.target.value)} rows={3} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
+            <Label htmlFor="about-registration" className="mt-4 block text-sm">등록 방법</Label>
+            <textarea id="about-registration" value={aboutRegistrationMethod} onChange={(event) => setAboutRegistrationMethod(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
+            <Label htmlFor="about-approval" className="mt-4 block text-sm">승인 시스템</Label>
+            <textarea id="about-approval" value={aboutApprovalSystem} onChange={(event) => setAboutApprovalSystem(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
+            <Label htmlFor="about-principles" className="mt-4 block text-sm">운영 원칙</Label>
+            <textarea id="about-principles" value={aboutOperatingPrinciples} onChange={(event) => setAboutOperatingPrinciples(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
+            <Label htmlFor="about-faq" className="mt-4 block text-sm">FAQ</Label>
+            <textarea id="about-faq" value={aboutFaq} onChange={(event) => setAboutFaq(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 lg:col-span-2">
+            <h3 className="text-sm font-semibold">문의하기</h3>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div>
+                <Label htmlFor="contact-title" className="block text-sm">페이지 제목</Label>
+                <Input id="contact-title" value={contactTitle} onChange={(event) => setContactTitle(event.target.value)} className="mt-2" />
+              </div>
+              <div>
+                <Label htmlFor="contact-email" className="block text-sm">연락처</Label>
+                <Input id="contact-email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} className="mt-2" />
+              </div>
+            </div>
+            <Label htmlFor="contact-inquiry" className="mt-4 block text-sm">문의 안내</Label>
+            <textarea id="contact-inquiry" value={contactInquiryGuide} onChange={(event) => setContactInquiryGuide(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
+            <Label htmlFor="contact-bug" className="mt-4 block text-sm">버그 제보 안내</Label>
+            <textarea id="contact-bug" value={contactBugGuide} onChange={(event) => setContactBugGuide(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
+            <Label htmlFor="contact-deletion" className="mt-4 block text-sm">삭제 요청 안내</Label>
+            <textarea id="contact-deletion" value={contactDeletionGuide} onChange={(event) => setContactDeletionGuide(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
+            <Label htmlFor="contact-suggestion" className="mt-4 block text-sm">서비스 제안 안내</Label>
+            <textarea id="contact-suggestion" value={contactSuggestionGuide} onChange={(event) => setContactSuggestionGuide(event.target.value)} rows={2} className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none" />
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
