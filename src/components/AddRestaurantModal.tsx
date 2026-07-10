@@ -33,7 +33,7 @@ interface AddRestaurantModalProps {
   currentUser?: { id: string; email: string | null } | null;
 }
 
-const CATEGORY_OPTIONS: Category[] = ['?쒖떇', '以묒떇', '?쇱떇', '移댄럹', '怨좉린', '?묒떇', '湲고?'];
+const CATEGORY_OPTIONS: Category[] = ['한식', '중식', '일식', '양식', '카페', '고기', '기타'];
 interface GeocodeResult {
   lat: number;
   lng: number;
@@ -85,7 +85,7 @@ const geocodeAddress = (address: string): Promise<GeocodeResult> => {
 const EMPTY_FORM = {
   name: '',
   address: '',
-  category: '?쒖떇' as Category,
+  category: '한식' as Category,
   menuName: '',
   price: '',
   shortReview: '',
@@ -116,7 +116,7 @@ export default function AddRestaurantModal({
       setForm({
         name: restaurant.name || '',
         address: restaurant.address || '',
-        category: restaurant.category || '?쒖떇',
+        category: restaurant.category || '한식',
         menuName: restaurant.menu?.[0]?.name || '',
         price: restaurant.menu?.[0]?.price?.toString() || '',
         shortReview: restaurant.shortReview || '',
