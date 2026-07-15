@@ -22,7 +22,12 @@ import {
 import { Loader2, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Category, Restaurant } from '@/lib/mock-data';
-import { addRestaurant, updateRestaurant } from '@/lib/restaurants';
+import {
+  addRestaurant,
+  fetchRestaurantRegistrationUsage,
+  updateRestaurant,
+  type RestaurantRegistrationUsage,
+} from '@/lib/restaurants';
 
 interface AddRestaurantModalProps {
   open: boolean;
@@ -107,11 +112,44 @@ export default function AddRestaurantModal({
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [registrationUsage, setRegistrationUsage] = useState<RestaurantRegistrationUsage | null>(null);
+  const [registrationUsageLoading, setRegistrationUsageLoading] = useState(false);
   const { toast } = useToast();
   const fieldsDisabled = submitting || uploadingImage || !isSupabaseConfigured || (!currentUser && mode === 'create');
 
+  const refreshRegistrationUsage = async (): Promise<RestaurantRegistrationUsage | null> => {
+    if (!isSupabaseConfigured || mode !== 'create' || !currentUser?.id) {
+      return null;
+    }
+
+    setRegistrationUsageLoading(true);
+    try {
+      const usage = await fetchRestaurantRegistrationUsage();
+      setRegistrationUsage(usage);
+      return usage;
+    } catch (error) {
+      console.error('[맛지도] 등록 사용량을 확인하지 못했습니다.', error);
+      setRegistrationUsage({
+        registrations_today: 0,
+        daily_limit: 3,
+        remaining_today: 3,
+        pending_count: 0,
+        cooldown_remaining_seconds: 0,
+        can_register: true,
+        is_admin: false,
+      });
+      return null;
+    } finally {
+      setRegistrationUsageLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
+
+    if (mode === 'create') {
+      void refreshRegistrationUsage();
+    }
 
     if (mode === 'edit' && restaurant) {
       setForm({
@@ -133,6 +171,11 @@ export default function AddRestaurantModal({
   }, [open, mode, restaurant]);
 
   const resetForm = () => setForm(EMPTY_FORM);
+
+  const formatCooldownLabel = (seconds: number) => {
+    if (!seconds || seconds <= 0) return '';
+    return `${seconds}초`;
+  };
 
   const handleClose = (nextOpen: boolean) => {
     if (!submitting) {
@@ -253,6 +296,38 @@ export default function AddRestaurantModal({
       return;
     }
 
+    if (mode === 'create' && isSupabaseConfigured && currentUser?.id) {
+      const usage = await refreshRegistrationUsage();
+      if (usage && !usage.is_admin) {
+        if (usage.pending_count >= 10) {
+          toast({
+            variant: 'destructive',
+            title: '등록이 제한되었습니다.',
+            description: '승인 대기 중인 맛집이 10개입니다. 관리자 승인 후 추가 등록할 수 있습니다.',
+          });
+          return;
+        }
+
+        if (usage.cooldown_remaining_seconds > 0) {
+          toast({
+            variant: 'destructive',
+            title: '등록이 제한되었습니다.',
+            description: `재등록까지 ${formatCooldownLabel(usage.cooldown_remaining_seconds)} 남았습니다.`,
+          });
+          return;
+        }
+
+        if (usage.registrations_today >= usage.daily_limit) {
+          toast({
+            variant: 'destructive',
+            title: '등록이 제한되었습니다.',
+            description: '하루 최대 3개까지 등록할 수 있습니다. 내일 다시 시도해주세요.',
+          });
+          return;
+        }
+      }
+    }
+
     setSubmitting(true);
     try {
       const coords = await geocodeAddress(form.address.trim());
@@ -354,6 +429,8 @@ export default function AddRestaurantModal({
         // ignore
       }
 
+      await refreshRegistrationUsage();
+
       resetForm();
       onOpenChange(false);
       onRegistered({ id: restaurantId, isApproved: isAdminEmail(currentUser?.email) });
@@ -379,6 +456,31 @@ export default function AddRestaurantModal({
             정확한 주소를 입력하시면 위치를 찾아 등록할 수 있습니다.
           </DialogDescription>
         </DialogHeader>
+
+        {mode === 'create' && currentUser?.id && isSupabaseConfigured && (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            {registrationUsageLoading ? (
+              <div className="text-slate-500">등록 가능 여부를 확인하는 중입니다.</div>
+            ) : registrationUsage?.is_admin ? (
+              <div>관리자 계정이므로 제한 없이 등록할 수 있습니다.</div>
+            ) : (
+              <>
+                <div className="font-medium">
+                  오늘 등록 가능 횟수: {Math.max(0, registrationUsage?.remaining_today ?? 3)}/{registrationUsage?.daily_limit ?? 3}
+                </div>
+                {registrationUsage?.cooldown_remaining_seconds ? (
+                  <div className="mt-1 text-amber-600">재등록까지 {formatCooldownLabel(registrationUsage.cooldown_remaining_seconds)} 남았습니다.</div>
+                ) : null}
+                {registrationUsage?.pending_count >= 10 ? (
+                  <div className="mt-1 text-amber-600">승인 대기 중인 맛집이 10개입니다. 관리자 승인 후 추가 등록할 수 있습니다.</div>
+                ) : null}
+                {registrationUsage && !registrationUsage.can_register && registrationUsage.registrations_today >= (registrationUsage.daily_limit ?? 3) ? (
+                  <div className="mt-1 text-red-600">하루 최대 3개까지 등록할 수 있습니다. 내일 다시 시도해주세요.</div>
+                ) : null}
+              </>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 overflow-y-auto pb-2 pr-1 max-h-[72dvh] sm:max-h-[76dvh]">
           <div className="flex flex-col gap-1.5">
@@ -532,7 +634,14 @@ export default function AddRestaurantModal({
               취소
             </Button>
 
-            <Button type="submit" className="h-10 flex-1 rounded-xl" disabled={fieldsDisabled}>
+            <Button
+              type="submit"
+              className="h-10 flex-1 rounded-xl"
+              disabled={
+                fieldsDisabled ||
+                (mode === 'create' && Boolean(currentUser?.id) && isSupabaseConfigured && registrationUsage && !registrationUsage.is_admin && !registrationUsage.can_register)
+              }
+            >
               {submitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />

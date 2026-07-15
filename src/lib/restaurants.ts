@@ -47,6 +47,16 @@ export interface RestaurantUpdateInput {
   rating?: number;
 }
 
+export interface RestaurantRegistrationUsage {
+  registrations_today: number;
+  daily_limit: number;
+  remaining_today: number;
+  pending_count: number;
+  cooldown_remaining_seconds: number;
+  can_register: boolean;
+  is_admin: boolean;
+}
+
 function rowToRestaurant(row: Record<string, any>): Restaurant {
   const ratingValue = typeof row.rating === 'number' ? row.rating : Number(row.rating) || 0;
   return {
@@ -102,6 +112,66 @@ export async function fetchAllRestaurants(user?: { id?: string | null; email?: s
  * 새 식당을 Supabase "restaurants" 테이블에 등록합니다.
  * Supabase가 설정되지 않은 경우 에러를 던지므로, 호출부에서 안내 메시지를 보여주세요.
  */
+function toRegistrationUsage(data: Record<string, unknown> | null | undefined): RestaurantRegistrationUsage {
+  return {
+    registrations_today: Number(data?.registrations_today ?? 0),
+    daily_limit: Number(data?.daily_limit ?? 3),
+    remaining_today: Number(data?.remaining_today ?? 0),
+    pending_count: Number(data?.pending_count ?? 0),
+    cooldown_remaining_seconds: Number(data?.cooldown_remaining_seconds ?? 0),
+    can_register: Boolean(data?.can_register),
+    is_admin: Boolean(data?.is_admin),
+  };
+}
+
+function toKoreanRegistrationError(error: unknown): Error {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const normalized = message.toUpperCase();
+
+  if (normalized.includes('DAILY_LIMIT_REACHED')) {
+    return new Error('하루 최대 3개까지 등록할 수 있습니다. 내일 다시 시도해주세요.');
+  }
+
+  if (normalized.includes('COOLDOWN_ACTIVE')) {
+    return new Error('등록은 60초 간격으로만 가능합니다. 잠시 후 다시 시도해주세요.');
+  }
+
+  if (normalized.includes('PENDING_LIMIT_REACHED')) {
+    return new Error('승인 대기 중인 맛집이 10개입니다. 관리자 승인 후 추가 등록할 수 있습니다.');
+  }
+
+  if (normalized.includes('OWNER_ID_MISMATCH')) {
+    return new Error('로그인 사용자 정보와 등록 정보가 일치하지 않습니다. 다시 로그인해 주세요.');
+  }
+
+  if (normalized.includes('LOG IN') || normalized.includes('로그인')) {
+    return new Error('로그인 후 맛집을 등록할 수 있습니다.');
+  }
+
+  return error instanceof Error ? error : new Error('등록에 실패했습니다. 잠시 후 다시 시도해주세요.');
+}
+
+export async function fetchRestaurantRegistrationUsage(): Promise<RestaurantRegistrationUsage> {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      registrations_today: 0,
+      daily_limit: 3,
+      remaining_today: 3,
+      pending_count: 0,
+      cooldown_remaining_seconds: 0,
+      can_register: true,
+      is_admin: false,
+    };
+  }
+
+  const { data, error } = await supabase.rpc('get_restaurant_registration_usage');
+  if (error) {
+    throw toKoreanRegistrationError(error);
+  }
+
+  return toRegistrationUsage((data as Record<string, unknown> | null) ?? null);
+}
+
 export async function addRestaurant(input: NewRestaurantInput): Promise<string> {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error('Supabase가 설정되지 않아 등록할 수 없습니다.');
@@ -151,7 +221,9 @@ export async function addRestaurant(input: NewRestaurantInput): Promise<string> 
     }
   }
 
-  if (error) throw error;
+  if (error) {
+    throw toKoreanRegistrationError(error);
+  }
   if (!data?.id) throw new Error('등록된 식당의 ID를 확인하지 못했습니다.');
 
   return String(data.id);
