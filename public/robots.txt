@@ -1,3 +1,5 @@
 User-agent: *
-Disallow: /admin
 Allow: /
+Disallow: /admin
+
+Sitemap: https://맛지도.com/sitemap.xml
